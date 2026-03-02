@@ -26,17 +26,19 @@ app.use(express.json());
 
 
 async function setupRoutes() {
-    // const pageRouteManager = require('./public/server/route-manager/pageRouteManager');
-    // const credentialManager = require('./public/server/route-manager/credentialManager');
-    // /** You are gonna have more than one API route manager here, define them here */
-    //
-    //
-    // app.use("/", pageRouteManager);
-    //
-    // /** With this, all routes defined in credentialManager will have a suffix "/api/" before the route */
-    // app.use("/api/", credentialManager);
-    //
-    // /** app.use("/api/", postRouteManager); */
+    const pageRouteManager = require('./public/server/route-manager/pageRouteManager');
+    const credentialManager = require('./public/server/route-manager/credentialManager');
+    const authRouteManager = require('./public/server/route-manager/authRouteManager');
+    /** You are gonna have more than one API route manager here, define them here */
+
+
+    app.use("/", pageRouteManager);
+
+    /** With this, all routes defined in credentialManager.js will have a suffix "/api/" before the route */
+    app.use("/api/", credentialManager);
+
+    /** app.use("/api/", postRouteManager); */
+    app.use("/api/", authRouteManager);
 }
 
 try {
