@@ -48,7 +48,7 @@ export const Login: React.FC<LoginProps> = ({ onClose, onLogin, onSwitchToSignUp
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-2 sm:p-4"
       onClick={onClose}
     >
       <motion.div
@@ -57,31 +57,31 @@ export const Login: React.FC<LoginProps> = ({ onClose, onLogin, onSwitchToSignUp
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
         transition={{ type: 'spring', duration: 0.5 }}
         onClick={(e) => e.stopPropagation()}
-        className="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden"
+        className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl max-w-md w-full overflow-hidden max-h-[95vh] overflow-y-auto"
       >
         {/* Header */}
-        <div className="relative bg-gradient-to-br from-blue-600 to-indigo-700 text-white p-8">
+        <div className="relative bg-gradient-to-br from-blue-600 to-indigo-700 text-white p-6 sm:p-8">
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 p-2 hover:bg-white/10 rounded-full transition-colors cursor-pointer"
+            className="absolute top-3 right-3 sm:top-4 sm:right-4 p-2 hover:bg-white/10 rounded-full transition-colors cursor-pointer"
           >
             <X size={20} />
           </button>
           
-          <div className="flex items-center gap-3 mb-4">
-            <div className="bg-white/20 backdrop-blur-md p-3 rounded-2xl">
-              <Search size={28} />
+          <div className="flex items-center gap-3 mb-3 sm:mb-4">
+            <div className="bg-white/20 backdrop-blur-md p-2.5 sm:p-3 rounded-2xl">
+              <Search size={24} className="sm:w-7 sm:h-7" />
             </div>
-            <h1 className="text-3xl font-black">FoundIt</h1>
+            <h1 className="text-2xl sm:text-3xl font-black">Welcome Back</h1>
           </div>
-          <p className="text-blue-100 font-medium">
-            Welcome back! Sign in to continue helping your community.
+          <p className="text-sm sm:text-base text-blue-100 font-medium">
+            Log in to access your account and manage your posts.
           </p>
         </div>
 
         {/* Form */}
-        <div className="p-8">
-          <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="p-6 sm:p-8">
+          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
             {/* Email Input */}
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-2">

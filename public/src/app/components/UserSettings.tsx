@@ -108,7 +108,9 @@ export const UserSettings: React.FC<UserSettingsProps> = ({
 
   const handleDeleteAccount = () => {
     if (window.confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
-      onDeleteAccount();
+      if (window.confirm('FINAL WARNING: All your posts, comments, and data will be permanently deleted. Are you absolutely sure?')) {
+        onDeleteAccount();
+      }
     }
   };
 
@@ -121,7 +123,7 @@ export const UserSettings: React.FC<UserSettingsProps> = ({
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-0 sm:p-4"
       onClick={onClose}
     >
       <motion.div
@@ -130,43 +132,43 @@ export const UserSettings: React.FC<UserSettingsProps> = ({
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
         transition={{ type: 'spring', duration: 0.5 }}
         onClick={(e) => e.stopPropagation()}
-        className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full overflow-hidden max-h-[90vh] flex flex-col"
+        className="bg-white rounded-none sm:rounded-3xl shadow-2xl max-w-4xl w-full h-full sm:h-auto overflow-hidden sm:max-h-[90vh] flex flex-col"
       >
         {/* Header */}
-        <div className="relative bg-gradient-to-br from-blue-600 to-indigo-700 text-white p-6">
+        <div className="relative bg-gradient-to-br from-blue-600 to-indigo-700 text-white p-4 sm:p-6">
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 p-2 hover:bg-white/10 rounded-full transition-colors cursor-pointer"
+            className="absolute top-3 right-3 sm:top-4 sm:right-4 p-2 hover:bg-white/10 rounded-full transition-colors cursor-pointer"
           >
             <X size={20} />
           </button>
-          <h1 className="text-3xl font-black">Settings</h1>
-          <p className="text-blue-100 font-medium mt-1">Manage your account preferences</p>
+          <h1 className="text-2xl sm:text-3xl font-black">Settings</h1>
+          <p className="text-sm sm:text-base text-blue-100 font-medium mt-1">Manage your account preferences</p>
         </div>
 
-        <div className="flex flex-1 overflow-hidden">
-          {/* Sidebar */}
-          <div className="w-64 border-r border-gray-200 p-4 overflow-y-auto">
-            <nav className="space-y-1">
+        <div className="flex flex-col sm:flex-row flex-1 overflow-hidden">
+          {/* Sidebar - Horizontal on mobile, vertical on desktop */}
+          <div className="sm:w-64 border-b sm:border-b-0 sm:border-r border-gray-200 overflow-x-auto sm:overflow-y-auto">
+            <nav className="flex sm:flex-col gap-1 p-2 sm:p-4 min-w-max sm:min-w-0">
               {sections.map(section => (
                 <button
                   key={section.id}
                   onClick={() => setActiveSection(section.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all cursor-pointer ${
+                  className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-xl font-bold transition-all cursor-pointer whitespace-nowrap text-sm sm:text-base ${
                     activeSection === section.id
                       ? 'bg-blue-50 text-blue-600'
                       : 'text-gray-600 hover:bg-gray-50'
                   }`}
                 >
-                  <section.icon size={20} />
-                  {section.label}
+                  <section.icon size={18} className="sm:w-5 sm:h-5" />
+                  <span className="hidden sm:inline">{section.label}</span>
                 </button>
               ))}
             </nav>
           </div>
 
           {/* Content */}
-          <div className="flex-1 p-6 overflow-y-auto">
+          <div className="flex-1 p-4 sm:p-6 overflow-y-auto">
             {/* Profile Section */}
             {activeSection === 'profile' && (
               <motion.div

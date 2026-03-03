@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Search, PlusCircle, User, LogOut, ShieldCheck, MapPin, Settings, UserCircle } from 'lucide-react';
 import { User as UserType } from '../types';
+import { ConfirmDialog } from './ConfirmDialog';
 
 interface NavbarProps {
   user: UserType | null;
@@ -15,12 +16,17 @@ interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({ user, onNavigate, onLogout, onAuth, onCreatePost, onShowProfile, onShowSettings, currentPage }) => {
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const desktopMenuRef = useRef<HTMLDivElement>(null);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
 
   // Close menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      const insideDesktop = desktopMenuRef.current?.contains(target);
+      const insideMobile = mobileMenuRef.current?.contains(target);
+      if (!insideDesktop && !insideMobile) {
         setShowUserMenu(false);
       }
     };
@@ -30,17 +36,18 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onNavigate, onLogout, onAu
   }, []);
 
   return (
-    <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100 px-4 py-3 md:px-8">
+    <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100 px-3 py-2 sm:px-4 sm:py-3 md:px-8">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         {/* Logo */}
         <button 
           onClick={() => onNavigate('home')}
-          className="flex items-center gap-2 text-2xl font-bold bg-linear-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent cursor-pointer"
+          className="flex items-center gap-1.5 sm:gap-2 text-lg sm:text-2xl font-bold bg-linear-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent cursor-pointer"
         >
-          <div className="bg-blue-600 p-1.5 rounded-lg text-white">
-            <Search size={20} />
+          <div className="bg-blue-600 p-1 sm:p-1.5 rounded-lg text-white">
+            <Search size={16} className="sm:hidden" />
+            <Search size={20} className="hidden sm:block" />
           </div>
-          FoundIt
+          <span className="hidden xs:inline">FoundIt</span>
         </button>
 
         {/* Desktop Links */}
@@ -74,7 +81,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onNavigate, onLogout, onAu
               )}
               
               {/* User Menu Dropdown */}
-              <div className="relative" ref={menuRef}>
+              <div className="relative" ref={desktopMenuRef}>
                 <button
                   onClick={() => setShowUserMenu(!showUserMenu)}
                   className="flex items-center gap-2 hover:bg-gray-50 rounded-xl p-2 transition-colors cursor-pointer"
@@ -121,7 +128,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onNavigate, onLogout, onAu
                     <div className="border-t border-gray-100 mt-2 pt-2">
                       <button
                         onClick={() => {
-                          onLogout();
+                          setShowLogoutConfirm(true);
                           setShowUserMenu(false);
                         }}
                         className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-red-600 hover:bg-red-50 transition-colors text-left cursor-pointer"
@@ -144,26 +151,104 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onNavigate, onLogout, onAu
           )}
         </div>
 
-        {/* Mobile menu button (Simplified for now) */}
-        <div className="md:hidden flex items-center gap-3">
+        {/* Mobile menu button */}
+        <div className="md:hidden flex items-center gap-2">
            <button 
             onClick={onCreatePost}
             className="p-2 bg-blue-600 text-white rounded-full cursor-pointer"
           >
             <PlusCircle size={20} />
           </button>
+          
           {!user && (
             <button onClick={onAuth} className="p-2 text-gray-600 cursor-pointer">
               <User size={20} />
             </button>
           )}
+          
           {user && (
-             <button onClick={onLogout} className="p-2 text-red-500 cursor-pointer">
-              <LogOut size={20} />
-            </button>
+            <div className="relative" ref={mobileMenuRef}>
+              <button
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white cursor-pointer"
+              >
+                <User size={18} />
+              </button>
+
+              {/* Mobile Dropdown Menu */}
+              {showUserMenu && (
+                <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50">
+                  <div className="px-4 py-3 border-b border-gray-100">
+                    <p className="text-xs font-bold text-gray-500 uppercase">Account</p>
+                    <p className="text-sm font-bold text-gray-900 mt-1">{user.name}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{user.email}</p>
+                  </div>
+                  
+                  {user.role === 'admin' && (
+                    <button
+                      onClick={() => {
+                        onNavigate('admin');
+                        setShowUserMenu(false);
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-purple-700 hover:bg-purple-50 transition-colors text-left cursor-pointer"
+                    >
+                      <ShieldCheck size={18} />
+                      Admin Dashboard
+                    </button>
+                  )}
+                  
+                  <button
+                    onClick={() => {
+                      onShowProfile();
+                      setShowUserMenu(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors text-left cursor-pointer"
+                  >
+                    <UserCircle size={18} />
+                    View Profile
+                  </button>
+                  
+                  <button
+                    onClick={() => {
+                      onShowSettings();
+                      setShowUserMenu(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors text-left cursor-pointer"
+                  >
+                    <Settings size={18} />
+                    Settings
+                  </button>
+                  
+                  <div className="border-t border-gray-100 mt-2 pt-2">
+                    <button
+                      onClick={() => setShowLogoutConfirm(true)}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-red-600 hover:bg-red-50 transition-colors text-left cursor-pointer"
+                    >
+                      <LogOut size={18} />
+                      Sign Out
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>
+      {/* Logout Confirmation Dialog */}
+      {showLogoutConfirm && (
+        <ConfirmDialog
+          title="Sign Out"
+          message="Are you sure you want to sign out of your account?"
+          confirmText="Sign Out"
+          cancelText="Stay Logged In"
+          variant="warning"
+          onConfirm={() => {
+            onLogout();
+            setShowLogoutConfirm(false);
+          }}
+          onCancel={() => setShowLogoutConfirm(false)}
+        />
+      )}
     </nav>
   );
 };

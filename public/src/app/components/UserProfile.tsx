@@ -35,7 +35,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-0 sm:p-4"
       onClick={onClose}
     >
       <motion.div
@@ -44,25 +44,25 @@ export const UserProfile: React.FC<UserProfileProps> = ({
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
         transition={{ type: 'spring', duration: 0.5 }}
         onClick={(e) => e.stopPropagation()}
-        className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full overflow-hidden max-h-[90vh] overflow-y-auto"
+        className="bg-white rounded-none sm:rounded-3xl shadow-2xl max-w-4xl w-full h-full sm:h-auto overflow-hidden sm:max-h-[90vh] overflow-y-auto"
       >
         {/* Header */}
-        <div className="relative bg-gradient-to-br from-blue-600 to-indigo-700 text-white p-8">
+        <div className="relative bg-gradient-to-br from-blue-600 to-indigo-700 text-white p-6 sm:p-8">
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 p-2 hover:bg-white/10 rounded-full transition-colors cursor-pointer"
+            className="absolute top-3 right-3 sm:top-4 sm:right-4 p-2 hover:bg-white/10 rounded-full transition-colors cursor-pointer"
           >
             <X size={20} />
           </button>
 
-          <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
             {/* Avatar */}
             <div className="relative">
-              <div className="w-24 h-24 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border-4 border-white/30">
-                <User size={48} />
+              <div className="w-20 h-20 sm:w-24 sm:h-24 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border-4 border-white/30">
+                <User size={40} className="sm:w-12 sm:h-12" />
               </div>
               {user.role === 'admin' && (
-                <div className="absolute -bottom-2 -right-2 bg-yellow-400 text-yellow-900 px-3 py-1 rounded-full text-xs font-black">
+                <div className="absolute -bottom-2 -right-2 bg-yellow-400 text-yellow-900 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-xs font-black">
                   ADMIN
                 </div>
               )}
@@ -70,14 +70,14 @@ export const UserProfile: React.FC<UserProfileProps> = ({
 
             {/* User Info */}
             <div className="flex-1">
-              <h1 className="text-3xl font-black mb-2">{user.name}</h1>
-              <div className="flex items-center gap-2 text-blue-100 mb-3">
-                <Mail size={16} />
-                <span className="font-medium">{user.email}</span>
+              <h1 className="text-2xl sm:text-3xl font-black mb-2">{user.name}</h1>
+              <div className="flex items-center gap-2 text-blue-100 mb-2 sm:mb-3">
+                <Mail size={14} className="sm:w-4 sm:h-4" />
+                <span className="text-sm sm:text-base font-medium">{user.email}</span>
               </div>
               <div className="flex items-center gap-2 text-blue-100">
-                <Calendar size={16} />
-                <span className="text-sm font-medium">Member since Feb 2026</span>
+                <Calendar size={14} className="sm:w-4 sm:h-4" />
+                <span className="text-xs sm:text-sm font-medium">Member since Feb 2026</span>
               </div>
             </div>
 
@@ -85,9 +85,9 @@ export const UserProfile: React.FC<UserProfileProps> = ({
             {isOwnProfile && (
               <button
                 onClick={onNavigateToSettings}
-                className="px-6 py-3 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 rounded-xl font-bold transition-all flex items-center gap-2 cursor-pointer"
+                className="w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-3 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 rounded-xl font-bold transition-all flex items-center justify-center gap-2 cursor-pointer text-sm sm:text-base"
               >
-                <Edit size={18} />
+                <Edit size={16} className="sm:w-[18px] sm:h-[18px]" />
                 Edit Profile
               </button>
             )}
@@ -95,26 +95,26 @@ export const UserProfile: React.FC<UserProfileProps> = ({
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-4 p-6 border-b border-gray-100">
+        <div className="grid grid-cols-3 gap-3 sm:gap-4 p-4 sm:p-6 border-b border-gray-100">
           {stats.map((stat, index) => (
             <div key={index} className="text-center">
               <div className="flex items-center justify-center mb-2">
-                <div className="p-3 bg-blue-50 rounded-xl">
-                  <stat.icon size={20} className="text-blue-600" />
+                <div className="p-2 sm:p-3 bg-blue-50 rounded-xl">
+                  <stat.icon size={18} className="text-blue-600 sm:w-5 sm:h-5" />
                 </div>
               </div>
-              <div className="text-2xl font-black text-gray-900">{stat.value}</div>
-              <div className="text-sm text-gray-500 font-bold">{stat.label}</div>
+              <div className="text-xl sm:text-2xl font-black text-gray-900">{stat.value}</div>
+              <div className="text-xs sm:text-sm text-gray-500 font-bold">{stat.label}</div>
             </div>
           ))}
         </div>
 
         {/* Tabs */}
-        <div className="border-b border-gray-100">
-          <div className="flex gap-1 px-6">
+        <div className="border-b border-gray-100 overflow-x-auto">
+          <div className="flex gap-1 px-4 sm:px-6 min-w-max">
             <button
               onClick={() => setActiveTab('posts')}
-              className={`px-6 py-4 font-bold transition-all cursor-pointer relative ${
+              className={`px-4 sm:px-6 py-3 sm:py-4 font-bold transition-all cursor-pointer relative text-sm sm:text-base whitespace-nowrap ${
                 activeTab === 'posts'
                   ? 'text-blue-600'
                   : 'text-gray-500 hover:text-gray-700'
@@ -130,7 +130,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
             </button>
             <button
               onClick={() => setActiveTab('comments')}
-              className={`px-6 py-4 font-bold transition-all cursor-pointer relative ${
+              className={`px-4 sm:px-6 py-3 sm:py-4 font-bold transition-all cursor-pointer relative text-sm sm:text-base whitespace-nowrap ${
                 activeTab === 'comments'
                   ? 'text-blue-600'
                   : 'text-gray-500 hover:text-gray-700'
@@ -148,7 +148,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
         </div>
 
         {/* Content */}
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           {activeTab === 'posts' && (
             <div className="space-y-4">
               {userPosts.length === 0 ? (

@@ -269,6 +269,20 @@ export default function App() {
     toast.success('Report resolved');
   };
 
+  const handleReportComment = (commentId: string, reason: string) => {
+    if (!user) return;
+    const newReport: Report = {
+      id: `r${reports.length + 1}`,
+      targetType: 'comment',
+      targetId: commentId,
+      reporterId: user.id,
+      reason,
+      status: 'pending',
+    };
+    setReports([...reports, newReport]);
+    toast.error('Report submitted for review');
+  };
+
   // User Profile & Settings Actions
   const handleUpdateUser = (updates: Partial<User>) => {
     if (!user) return;
@@ -322,7 +336,7 @@ export default function App() {
         currentPage={currentPage}
       />
 
-      <main className="max-w-7xl mx-auto px-4 py-8 md:px-8">
+      <main className="max-w-7xl mx-auto px-3 py-6 sm:px-4 sm:py-8 md:px-8">
         <AnimatePresence mode="wait">
           {currentPage === 'home' && (
             <motion.div
@@ -330,36 +344,36 @@ export default function App() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="space-y-12"
+              className="space-y-8 sm:space-y-12"
             >
               {/* Hero Section */}
-              <section className="relative overflow-hidden rounded-[40px] bg-linear-to-br from-blue-700 to-indigo-900 text-white p-8 md:p-16">
-                <div className="relative z-10 max-w-2xl space-y-6">
-                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-md rounded-full text-sm font-bold border border-white/20">
+              <section className="relative overflow-hidden rounded-3xl sm:rounded-[40px] bg-linear-to-br from-blue-700 to-indigo-900 text-white p-6 sm:p-8 md:p-16">
+                <div className="relative z-10 max-w-2xl space-y-4 sm:space-y-6">
+                  <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/10 backdrop-blur-md rounded-full text-xs sm:text-sm font-bold border border-white/20">
                     <span className="flex h-2 w-2 rounded-full bg-green-400 animate-pulse" />
                     Connecting communities worldwide
                   </div>
-                  <h1 className="text-5xl md:text-7xl font-black leading-[1.1] tracking-tight">
+                  <h1 className="text-4xl sm:text-5xl md:text-7xl font-black leading-[1.1] tracking-tight">
                     Lost it? <span className="text-blue-300">Found it.</span>
                   </h1>
-                  <p className="text-xl text-blue-100/80 leading-relaxed font-medium">
-                    The centralized platform to report missing items and help others recover what they've lost. Simple, fast, and community-driven.
+                  <p className="text-base sm:text-xl text-blue-100/80 leading-relaxed font-medium">
+                    The centralized platform to report missing items and help others recover what they've lost.
                   </p>
-                  <div className="flex flex-wrap gap-4 pt-4">
+                  <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 pt-2 sm:pt-4">
                     <button 
                       onClick={() => setShowPostForm(true)}
-                      className="px-8 py-4 bg-white text-blue-900 rounded-2xl font-black hover:bg-blue-50 transition-all shadow-xl shadow-black/20 flex items-center gap-2 group cursor-pointer"
+                      className="px-6 sm:px-8 py-3 sm:py-4 bg-white text-blue-900 rounded-xl sm:rounded-2xl font-black hover:bg-blue-50 transition-all shadow-xl shadow-black/20 flex items-center justify-center gap-2 group cursor-pointer text-sm sm:text-base"
                     >
-                      Report Item <Plus size={20} className="group-hover:rotate-90 transition-transform" />
+                      Report Item <Plus size={18} className="sm:w-5 sm:h-5 group-hover:rotate-90 transition-transform" />
                     </button>
                     <button 
                       onClick={() => {
                         const el = document.getElementById('browse');
                         el?.scrollIntoView({ behavior: 'smooth' });
                       }}
-                      className="px-8 py-4 bg-blue-600/30 backdrop-blur-md text-white border border-white/20 rounded-2xl font-black hover:bg-white/10 transition-all flex items-center gap-2 group cursor-pointer"
+                      className="px-6 sm:px-8 py-3 sm:py-4 bg-blue-600/30 backdrop-blur-md text-white border border-white/20 rounded-xl sm:rounded-2xl font-black hover:bg-white/10 transition-all flex items-center justify-center gap-2 group cursor-pointer text-sm sm:text-base"
                     >
-                      Start Browsing <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                      Start Browsing <ArrowRight size={18} className="sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" />
                     </button>
                   </div>
                 </div>
@@ -367,7 +381,7 @@ export default function App() {
                 {/* Decorative Elements */}
                 <div className="absolute top-[-10%] right-[-10%] w-[60%] h-[120%] bg-blue-500/20 blur-[120px] rounded-full" />
                 <div className="absolute bottom-[-20%] left-[-10%] w-[40%] h-[80%] bg-indigo-500/20 blur-[100px] rounded-full" />
-                <div className="hidden md:block absolute right-12 bottom-12 w-64 h-64 bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl rotate-12 shadow-2xl animate-bounce-slow">
+                <div className="hidden lg:block absolute right-12 bottom-12 w-64 h-64 bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl rotate-12 shadow-2xl animate-bounce-slow">
                    <div className="p-6 space-y-4">
                       <div className="w-12 h-12 bg-white/20 rounded-xl" />
                       <div className="w-full h-4 bg-white/20 rounded-full" />
@@ -430,6 +444,7 @@ export default function App() {
             onUpdateStatus={() => handleUpdatePostStatus(selectedPost.id)}
             onReport={(reason) => handleReport(selectedPost.id, reason)}
             onDelete={() => handleDeletePost(selectedPost.id)}
+            onReportComment={(commentId, reason) => handleReportComment(commentId, reason)}
           />
         )}
 
