@@ -31,7 +31,6 @@ async function setupRoutes() {
     const authRouteManager = require('./public/server/route-manager/authRouteManager');
     /** You are gonna have more than one API route manager here, define them here */
 
-
     app.use("/", pageRouteManager);
 
     /** With this, all routes defined in credentialManager.js will have a suffix "/api/" before the route */
@@ -41,19 +40,18 @@ async function setupRoutes() {
     app.use("/api/", authRouteManager);
 }
 
-try {
 
-    // setupRoutes()
-
-    server.listen(PORT, () => {
-        const protocol = process.env.ENABLE_HTTPS === 'true' ? 'https' : 'http';
-        console.log(`Server running on ${protocol}://localhost:${PORT}`);
-        console.log('Server is now online');
-    });
-
-} catch (err) {
-    console.error(`Server Startup Failed:`, err);
-    console.error("Startup failed:", err);
-    process.exit(1);
-}
+(async () => {
+    try {
+        await setupRoutes();
+        server.listen(PORT, () => {
+            const protocol = process.env.ENABLE_HTTPS === 'true' ? 'https' : 'http';
+            console.log(`Server running on ${protocol}://localhost:${PORT}`);
+            console.log('Server is now online');
+        });
+    } catch (err) {
+        console.error('Server Startup Failed:', err);
+        process.exit(1);
+    }
+})();
 
