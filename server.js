@@ -29,6 +29,7 @@ async function setupRoutes() {
     const pageRouteManager = require('./public/server/route-manager/pageRouteManager');
     const credentialManager = require('./public/server/route-manager/credentialManager');
     const authRouteManager = require('./public/server/route-manager/authRouteManager');
+    const postRouteManager = require('./public/server/route-manager/postRouteManager');
     /** You are gonna have more than one API route manager here, define them here */
 
     app.use("/", pageRouteManager);
@@ -38,6 +39,8 @@ async function setupRoutes() {
 
     /** app.use("/api/", postRouteManager); */
     app.use("/api/", authRouteManager);
+
+    app.use("/api/", postRouteManager);
 }
 
 
