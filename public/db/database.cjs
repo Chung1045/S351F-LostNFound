@@ -98,6 +98,23 @@ const initDatabase = () => {
             );
         `)
         console.log("Database schema initialized successfully");
+        
+        // Create default admin user if it doesn't exist
+        const adminEmail = 'admin@foundit.com';
+        const stmt = db.prepare('SELECT id FROM users WHERE email = ?');
+        const adminUser = stmt.get(adminEmail);
+        
+        if (!adminUser) {
+            const argon2 = require('argon2');
+            const { v4: uuidv4 } = require('uuid');
+            
+            argon2.hash('admin123').then(hashedPassword => {
+                const insertStmt = db.prepare('INSERT INTO users (id, username, email, password, role) VALUES (?, ?, ?, ?, ?)');
+                insertStmt.run(uuidv4(), 'Admin Jane', adminEmail, hashedPassword, 'admin');
+                console.log('Default admin user created: admin@foundit.com / admin123');
+            }).catch(console.error);
+        }
+
         initialized = true;
     } catch (err) {
         console.error('Database initialization failed:', err);
