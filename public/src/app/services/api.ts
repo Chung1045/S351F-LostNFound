@@ -4,7 +4,21 @@ const API_BASE_URL = '/api';
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem('token');
+  console.log('Token from localStorage:', token);
   return token ? { 'Authorization': `Bearer ${token}` } : {};
+};
+
+const handleResponse = async (response: Response) => {
+  if (!response.ok) {
+    if (response.status === 401) {
+      localStorage.removeItem('token');
+      // Optional: Dispatch a custom event to notify the app to update state
+      window.dispatchEvent(new Event('auth:unauthorized'));
+    }
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || errorData.error || `Request failed: ${response.status} ${response.statusText}`);
+  }
+  return response.json();
 };
 
 export const api = {
@@ -15,10 +29,10 @@ export const api = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(credentials),
       });
-      if (!response.ok) throw new Error('Login failed');
-      const data = await response.json();
-      localStorage.setItem('token', data.token);
-      return data.user;
+      return handleResponse(response).then(data => {
+        localStorage.setItem('token', data.token);
+        return data.user;
+      });
     },
     register: async (userData: { username: string; email: string; password: string }) => {
       const response = await fetch(`${API_BASE_URL}/auth/register`, {
@@ -26,21 +40,20 @@ export const api = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(userData),
       });
-      if (!response.ok) throw new Error('Registration failed');
-      const data = await response.json();
-      localStorage.setItem('token', data.token);
-      return data.user;
+      return handleResponse(response).then(data => {
+        localStorage.setItem('token', data.token);
+        return data.user;
+      });
     },
     logout: () => {
       localStorage.removeItem('token');
+      window.dispatchEvent(new Event('auth:logout'));
     },
     getProfile: async () => {
       const response = await fetch(`${API_BASE_URL}/users/me`, {
         headers: getAuthHeaders(),
       });
-      if (!response.ok) throw new Error('Failed to fetch profile');
-      const data = await response.json();
-      return data.user;
+      return handleResponse(response).then(data => data.user);
     },
     updateProfile: async (userData: { name: string; email: string }) => {
       const response = await fetch(`${API_BASE_URL}/users/me`, {
@@ -48,9 +61,7 @@ export const api = {
         headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify(userData),
       });
-      if (!response.ok) throw new Error('Failed to update profile');
-      const data = await response.json();
-      return data.user;
+      return handleResponse(response).then(data => data.user);
     },
     updatePassword: async (passwords: { currentPassword: string; newPassword: string }) => {
       const response = await fetch(`${API_BASE_URL}/users/password`, {
@@ -58,31 +69,29 @@ export const api = {
         headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify(passwords),
       });
-      if (!response.ok) throw new Error('Failed to update password');
-      return response.json();
+      return handleResponse(response);
     },
     deleteAccount: async () => {
       const response = await fetch(`${API_BASE_URL}/users/me`, {
         method: 'DELETE',
         headers: getAuthHeaders(),
       });
-      if (!response.ok) throw new Error('Failed to delete account');
-      localStorage.removeItem('token');
-      return response.json();
+      return handleResponse(response).then(data => {
+        localStorage.removeItem('token');
+        return data;
+      });
     },
     getUsers: async () => {
       const response = await fetch(`${API_BASE_URL}/users`, {
         headers: getAuthHeaders(),
       });
-      if (!response.ok) throw new Error('Failed to fetch users');
-      return response.json();
+      return handleResponse(response);
     }
   },
   posts: {
     getAll: async () => {
       const response = await fetch(`${API_BASE_URL}/posts`);
-      if (!response.ok) throw new Error('Failed to fetch posts');
-      return response.json();
+      return handleResponse(response);
     },
     create: async (postData: Partial<Post>) => {
       const response = await fetch(`${API_BASE_URL}/posts`, {
@@ -90,8 +99,7 @@ export const api = {
         headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify(postData),
       });
-      if (!response.ok) throw new Error('Failed to create post');
-      return response.json();
+      return handleResponse(response);
     },
     updateStatus: async (id: string, status: string) => {
       const response = await fetch(`${API_BASE_URL}/posts/${id}/status`, {
@@ -99,23 +107,20 @@ export const api = {
         headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
       });
-      if (!response.ok) throw new Error('Failed to update post status');
-      return response.json();
+      return handleResponse(response);
     },
     delete: async (id: string) => {
       const response = await fetch(`${API_BASE_URL}/posts/${id}`, {
         method: 'DELETE',
         headers: getAuthHeaders(),
       });
-      if (!response.ok) throw new Error('Failed to delete post');
-      return response.json();
+      return handleResponse(response);
     },
   },
   comments: {
     getByPostId: async (postId: string) => {
       const response = await fetch(`${API_BASE_URL}/posts/${postId}/comments`);
-      if (!response.ok) throw new Error('Failed to fetch comments');
-      return response.json();
+      return handleResponse(response);
     },
     add: async (postId: string, content: string) => {
       const response = await fetch(`${API_BASE_URL}/posts/${postId}/comments`, {
@@ -123,8 +128,7 @@ export const api = {
         headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify({ content }),
       });
-      if (!response.ok) throw new Error('Failed to add comment');
-      return response.json();
+      return handleResponse(response);
     },
   },
   reports: {
@@ -132,8 +136,7 @@ export const api = {
       const response = await fetch(`${API_BASE_URL}/reports`, {
         headers: getAuthHeaders(),
       });
-      if (!response.ok) throw new Error('Failed to fetch reports');
-      return response.json();
+      return handleResponse(response);
     },
     create: async (reportData: Partial<Report>) => {
       const response = await fetch(`${API_BASE_URL}/reports`, {
@@ -141,16 +144,14 @@ export const api = {
         headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify(reportData),
       });
-      if (!response.ok) throw new Error('Failed to create report');
-      return response.json();
+      return handleResponse(response);
     },
     resolve: async (id: string) => {
       const response = await fetch(`${API_BASE_URL}/reports/${id}/resolve`, {
         method: 'PUT',
         headers: getAuthHeaders(),
       });
-      if (!response.ok) throw new Error('Failed to resolve report');
-      return response.json();
+      return handleResponse(response);
     },
   },
 };

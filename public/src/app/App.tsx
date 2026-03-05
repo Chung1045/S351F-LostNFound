@@ -59,6 +59,28 @@ function AppContent() {
     };
 
     initApp();
+
+    // Listen for unauthorized events (e.g. token expired/invalid)
+    const handleUnauthorized = () => {
+      setUser(null);
+      localStorage.removeItem('token');
+      setShowLogin(true);
+      toast.error('Session expired. Please log in again.');
+    };
+
+    const handleLogoutEvent = () => {
+        setUser(null);
+        setCurrentPage('home');
+        toast.info('Signed out successfully');
+    };
+
+    window.addEventListener('auth:unauthorized', handleUnauthorized);
+    window.addEventListener('auth:logout', handleLogoutEvent);
+
+    return () => {
+      window.removeEventListener('auth:unauthorized', handleUnauthorized);
+      window.removeEventListener('auth:logout', handleLogoutEvent);
+    };
   }, []);
 
   // Fetch comments when a post is selected
@@ -137,9 +159,7 @@ function AppContent() {
 
   const handleLogout = () => {
     api.auth.logout();
-    setUser(null);
-    setCurrentPage('home');
-    toast.info('Signed out successfully');
+    // Event listener will handle state update and toast
   };
 
   // Post Actions

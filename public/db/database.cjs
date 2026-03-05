@@ -1,6 +1,8 @@
 const Database = require('better-sqlite3');
 const path = require('path');
 const fs = require('fs');
+const argon2 = require('argon2');
+const { v4: uuidv4 } = require('uuid');
 
 const dbFolder = path.join(__dirname, '..', 'db');
 const dbPath = path.join(dbFolder, 'lost_and_found.db')
@@ -14,7 +16,7 @@ const db = new Database(dbPath, {
 
 let initialized = false;
 
-const initDatabase = () => {
+const initDatabase = async () => {
     if (initialized){
         return;
     }
@@ -98,21 +100,19 @@ const initDatabase = () => {
             );
         `)
         console.log("Database schema initialized successfully");
-        
-        // Create default admin user if it doesn't exist
-        const adminEmail = 'admin@foundit.com';
-        const stmt = db.prepare('SELECT id FROM users WHERE email = ?');
-        const adminUser = stmt.get(adminEmail);
-        
-        if (!adminUser) {
-            const argon2 = require('argon2');
-            const { v4: uuidv4 } = require('uuid');
-            
-            argon2.hash('admin123').then(hashedPassword => {
-                const insertStmt = db.prepare('INSERT INTO users (id, username, email, password, role) VALUES (?, ?, ?, ?, ?)');
-                insertStmt.run(uuidv4(), 'Admin Jane', adminEmail, hashedPassword, 'admin');
-                console.log('Default admin user created: admin@foundit.com / admin123');
-            }).catch(console.error);
+
+        // Seed default admin user
+        const adminCheck = db.prepare("SELECT * FROM users WHERE role = 'admin'").get();
+        if (!adminCheck) {
+            console.log("Creating default admin account...");
+            try {
+                const hashedPassword = await argon2.hash('admin123');
+                const id = uuidv4();
+                db.prepare("INSERT INTO users (id, username, email, password, role) VALUES (?, ?, ?, ?, ?)").run(id, 'admin', 'admin@foundit.com', hashedPassword, 'admin');
+                console.log("Default admin account created: Email: admin@foundit.com, Password: admin123");
+            } catch (seedErr) {
+                console.error("Failed to seed admin account:", seedErr);
+            }
         }
 
         initialized = true;

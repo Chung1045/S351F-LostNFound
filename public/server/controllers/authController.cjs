@@ -3,8 +3,6 @@ const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const db = require('../../db/database.cjs');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
-
 // Register
 const register = async (req, res) => {
     try {
@@ -16,10 +14,10 @@ const register = async (req, res) => {
         const hashedPassword = await argon2.hash(password);
         const id = uuidv4();
 
-        const stmt = db.prepare('INSERT INTO users (id, username, email, password) VALUES (?, ?, ?, ?)');
-        stmt.run(id, username, email, hashedPassword);
+        const stmt = db.prepare('INSERT INTO users (id, username, email, password, role) VALUES (?, ?, ?, ?, ?)');
+        stmt.run(id, username, email, hashedPassword, 'user');
 
-        const token = jwt.sign({ id, username, role: 'user' }, JWT_SECRET, { expiresIn: '24h' });
+        const token = jwt.sign({ id, username, role: 'user' }, process.env.JWT_SECRET || 'your-secret-key', { expiresIn: '24h' });
         res.status(201).json({ user: { id, name: username, email, role: 'user' }, token });
     } catch (error) {
         if (error.message.includes('UNIQUE constraint failed')) {
@@ -45,7 +43,7 @@ const login = async (req, res) => {
             return res.status(401).json({ error: 'Invalid email or password' });
         }
 
-        const token = jwt.sign({ id: user.id, username: user.username, role: user.role }, JWT_SECRET, { expiresIn: '24h' });
+        const token = jwt.sign({ id: user.id, username: user.username, role: user.role }, process.env.JWT_SECRET || 'your-secret-key', { expiresIn: '24h' });
         res.json({ user: { id: user.id, name: user.username, email: user.email, role: user.role }, token });
     } catch (error) {
         console.error(error);
@@ -109,6 +107,9 @@ const updateProfile = (req, res) => {
 
         res.json({ message: 'Profile updated successfully', user: { id: userId, name, email, role: req.user.role } });
     } catch (error) {
+        if (error.message.includes('UNIQUE constraint failed')) {
+            return res.status(400).json({ error: 'Username or email already exists' });
+        }
         console.error(error);
         res.status(500).json({ error: 'Internal server error' });
     }
