@@ -44,7 +44,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({ comment, currentUser, 
               {currentUser && !isOwnComment && (
                 <button
                   onClick={() => setShowReportModal(true)}
-                  className="p-1 text-gray-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 cursor-pointer"
+                  className="p-1 text-gray-300 hover:text-red-500 transition-colors opacity-100 md:opacity-0 group-hover:opacity-100 cursor-pointer"
                   title={t.comment.reportComment}
                 >
                   <Flag size={12} />

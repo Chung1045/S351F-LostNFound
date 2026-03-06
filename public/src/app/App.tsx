@@ -395,8 +395,8 @@ function AppContent() {
             >
               <div className="flex items-center justify-between mb-8">
                 <div>
-                  <h1 className="text-3xl font-black text-gray-900">Admin Command Center</h1>
-                  <p className="text-gray-500">Monitor reports and moderate community content.</p>
+                  <h1 className="text-3xl font-black text-gray-900 dark:text-white">Admin Command Center</h1>
+                  <p className="text-gray-500 dark:text-gray-400">Monitor reports and moderate community content.</p>
                 </div>
                 <button 
                   onClick={() => setCurrentPage('home')}
@@ -422,6 +422,7 @@ function AppContent() {
       <AnimatePresence>
         {selectedPost && (
           <ItemDetails 
+            key="item-details"
             post={selectedPost}
             comments={comments}
             currentUser={user}
@@ -431,11 +432,13 @@ function AppContent() {
             onReport={(reason) => handleReport(selectedPost.id, reason)}
             onDelete={() => handleDeletePost(selectedPost.id)}
             onReportComment={(commentId, reason) => handleReportComment(commentId, reason)}
+            onLogin={() => setShowLogin(true)}
           />
         )}
 
         {showPostForm && (
           <PostForm 
+            key="post-form"
             onSubmit={handleCreatePost}
             onClose={() => setShowPostForm(false)}
           />
@@ -443,6 +446,7 @@ function AppContent() {
 
         {showLogin && (
           <Login 
+            key="login"
             onLogin={handleLogin}
             onClose={() => setShowLogin(false)}
             onSwitchToSignUp={handleSwitchToSignUp}
@@ -451,6 +455,7 @@ function AppContent() {
 
         {showSignUp && (
           <SignUp 
+            key="signup"
             onClose={() => setShowSignUp(false)}
             onSignUp={handleSignUp}
             onSwitchToLogin={handleSwitchToLogin}
@@ -459,6 +464,7 @@ function AppContent() {
 
         {showProfile && user && (
           <UserProfile 
+            key="user-profile"
             user={user}
             posts={posts}
             comments={comments} // This might need to be filtered for user's comments if API doesn't return all comments for user profile
@@ -474,6 +480,7 @@ function AppContent() {
 
         {showSettings && user && (
           <UserSettings 
+            key="user-settings"
             user={user}
             onClose={() => setShowSettings(false)}
             onUpdateUser={handleUpdateUser}

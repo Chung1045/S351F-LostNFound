@@ -17,6 +17,7 @@ interface ItemDetailsProps {
   onReport: (reason: string) => void;
   onDelete: () => void;
   onReportComment?: (commentId: string, reason: string) => void;
+  onLogin?: () => void;
 }
 
 export const ItemDetails: React.FC<ItemDetailsProps> = ({ 
@@ -28,7 +29,8 @@ export const ItemDetails: React.FC<ItemDetailsProps> = ({
   onUpdateStatus, 
   onReport,
   onDelete,
-  onReportComment
+  onReportComment,
+  onLogin
 }) => {
   const { t } = useApp();
   const [newComment, setNewComment] = useState('');
@@ -105,7 +107,8 @@ export const ItemDetails: React.FC<ItemDetailsProps> = ({
               </div>
             ) : (
               <div className="bg-gray-100 dark:bg-gray-700 p-4 rounded-xl text-center">
-                <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">{t.details.loginToView}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 font-medium mb-2">{t.details.loginToView}</p>
+                <button onClick={onLogin} className="px-4 py-1.5 bg-white dark:bg-gray-600 border border-gray-200 dark:border-gray-500 rounded-lg font-bold text-gray-900 dark:text-white text-sm hover:bg-gray-50 dark:hover:bg-gray-500 transition-all cursor-pointer">{t.details.logIn}</button>
               </div>
             )}
             {post.status === 'active' && (isOwner || isAdmin) && (
@@ -146,7 +149,12 @@ export const ItemDetails: React.FC<ItemDetailsProps> = ({
                 <button type="submit" disabled={!newComment.trim()} className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-blue-600 disabled:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-all cursor-pointer"><Send size={18} /></button>
               </form>
             ) : (
-              <p className="text-xs text-center text-gray-500 dark:text-gray-400 italic py-2">{t.details.loginToComment2}</p>
+              <div className="text-center py-4">
+                <p className="text-xs text-gray-500 dark:text-gray-400 italic mb-2">{t.details.loginToComment2}</p>
+                <button onClick={onLogin} className="px-4 py-1.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg text-xs font-bold hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors cursor-pointer">
+                  {t.details.logIn}
+                </button>
+              </div>
             )}
           </div>
 
@@ -235,7 +243,7 @@ export const ItemDetails: React.FC<ItemDetailsProps> = ({
               ) : (
                 <div className="bg-gray-100 dark:bg-gray-700 p-6 rounded-2xl text-center">
                   <p className="text-gray-500 dark:text-gray-400 font-medium mb-3">{t.details.loginToView}</p>
-                  <button className="px-6 py-2 bg-white dark:bg-gray-600 border border-gray-200 dark:border-gray-500 rounded-lg font-bold text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-500 transition-all cursor-pointer">{t.details.logIn}</button>
+                  <button onClick={onLogin} className="px-6 py-2 bg-white dark:bg-gray-600 border border-gray-200 dark:border-gray-500 rounded-lg font-bold text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-500 transition-all cursor-pointer">{t.details.logIn}</button>
                 </div>
               )}
 
@@ -297,7 +305,12 @@ export const ItemDetails: React.FC<ItemDetailsProps> = ({
                 <button type="submit" disabled={!newComment.trim()} className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-blue-600 disabled:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-all cursor-pointer"><Send size={18} /></button>
               </form>
             ) : (
-              <p className="text-xs text-center text-gray-500 dark:text-gray-400 italic">{t.details.loginToComment}</p>
+              <div className="text-center py-4">
+                <p className="text-xs text-gray-500 dark:text-gray-400 italic mb-2">{t.details.loginToComment}</p>
+                <button onClick={onLogin} className="px-4 py-1.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg text-xs font-bold hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors cursor-pointer">
+                  {t.details.logIn}
+                </button>
+              </div>
             )}
           </div>
         </div>
