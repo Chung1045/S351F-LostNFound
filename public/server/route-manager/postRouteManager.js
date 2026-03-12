@@ -2,6 +2,8 @@ const express = require("express");
 const router = express.Router();
 const db = require("../../db/database.cjs"); 
 const { v4: uuidv4 } = require("uuid");
+const authMiddleware = require('../middleware/authMiddleware.cjs');
+
 
 /**Browse Posts**/
 router.get("/posts", (req, res) => {
@@ -84,12 +86,27 @@ router.put("/posts/:id", (req, res) => {
 });
 
 /** Delete Post**/
-router.delete("/posts/:id", (req, res) => {
+router.delete("/posts/:id", authMiddleware, (req, res) => {
     const { id } = req.params;
+    
+    // checking admin role
+    const currentUserRole = req.user.role; 
+
+    if (currentUserRole !== 'admin') {
+        return res.status(403).json({ 
+            error: "only admin can delete posts" 
+        });
+    }
+
     try {
+
         const result = db.prepare("DELETE FROM posts WHERE id = ?").run(id);
-        if (result.changes === 0) return res.status(404).json({ error: "nothing found" });
-        res.status(200).json({ message: "Post deleted successfully" });
+
+        if (result.changes === 0) {
+            return res.status(404).json({ error: "Post is not found" });
+        }
+
+        res.status(200).json({ message: "Deleted" });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

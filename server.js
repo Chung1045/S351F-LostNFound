@@ -32,9 +32,9 @@ async function setupRoutes() {
     const postRouteManager = require('./public/server/route-manager/postRouteManager');
     const commentRouteManager = require('./public/server/route-manager/commentRouteManager');
     const notificationRoutes = require('./public/server/route-manager/notificationRouteManager');
-app.use('/api', notificationRoutes);
-    /** You are gonna have more than one API route manager here, define them here */
+    const moderationRouteManager = require('./public/server/route-manager/moderationRouteManager');
 
+    /** You are gonna have more than one API route manager here, define them here */
     app.use("/", pageRouteManager);
 
     /** With this, all routes defined in credentialManager.js will have a suffix "/api/" before the route */
@@ -46,6 +46,10 @@ app.use('/api', notificationRoutes);
     app.use("/api/", postRouteManager);
 
     app.use("/api/", commentRouteManager); 
+
+    app.use("/api/", moderationRouteManager);
+
+    app.use('/api', notificationRoutes);
 }
 
 
