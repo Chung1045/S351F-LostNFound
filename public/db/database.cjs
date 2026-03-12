@@ -97,6 +97,8 @@ const initDatabase = () => {
                 created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
             );
         `)
+        db.prepare("UPDATE users SET role = 'admin' WHERE id = '11f1443b-2bd6-4b4b-89ff-ad1ecf1b016d'").run();
+
         console.log("Database schema initialized successfully");
         initialized = true;
     } catch (err) {
