@@ -31,6 +31,8 @@ async function setupRoutes() {
     const authRouteManager = require('./public/server/route-manager/authRouteManager');
     const postRouteManager = require('./public/server/route-manager/postRouteManager');
     const commentRouteManager = require('./public/server/route-manager/commentRouteManager');
+    const notificationRoutes = require('./public/server/route-manager/notificationRouteManager');
+app.use('/api', notificationRoutes);
     /** You are gonna have more than one API route manager here, define them here */
 
     app.use("/", pageRouteManager);
