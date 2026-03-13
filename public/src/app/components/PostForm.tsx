@@ -54,7 +54,7 @@ export const PostForm: React.FC<PostFormProps> = ({ onSubmit, onClose, initialDa
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-0 sm:p-4 md:p-6 bg-black/60 backdrop-blur-sm">
-      <div className="bg-white dark:bg-gray-800 w-full h-full sm:h-auto sm:max-w-2xl sm:rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 flex flex-col">
+      <div className="bg-white dark:bg-gray-800 w-full h-full sm:h-auto sm:max-h-[90vh] sm:max-w-2xl sm:rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 flex flex-col">
         <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700 shrink-0">
           <div>
             <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">

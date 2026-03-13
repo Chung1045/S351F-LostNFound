@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Post, Report, User as UserType } from '../types';
 import { ShieldCheck, AlertCircle, CheckCircle, Trash2, User, Eye, ArrowRight, Flag, Calendar, MapPin } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
+import { ConfirmDialog } from './ConfirmDialog';
 
 interface AdminDashboardProps {
   posts: Post[];
@@ -14,6 +15,8 @@ interface AdminDashboardProps {
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ posts, reports, users, onReviewPost, onDeletePost, onResolveReport }) => {
   const { t } = useApp();
+  const [reportToDelete, setReportToDelete] = useState<string | null>(null);
+
   const pendingReports = reports.filter(r => r.status === 'pending');
   const reportedPosts = posts.filter(p => p.isReported);
 
@@ -162,11 +165,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ posts, reports, 
                         </button>
                       )}
                       <div className="flex gap-2">
-                        <button onClick={() => onResolveReport(report.id)} className="p-2 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/30 rounded-lg transition-colors cursor-pointer">
-                          <CheckCircle size={18} />
+                        <button 
+                          onClick={() => onResolveReport(report.id)} 
+                          className="flex items-center gap-2 px-3 py-2 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/30 rounded-lg transition-colors cursor-pointer text-xs font-bold"
+                        >
+                          <CheckCircle size={16} />
+                          Resolve
                         </button>
-                        <button onClick={() => { if (window.confirm('Delete this reported post?')) onDeletePost(report.targetId); }} className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors cursor-pointer">
-                          <Trash2 size={18} />
+                        <button 
+                          onClick={() => setReportToDelete(report.targetId)} 
+                          className="flex items-center gap-2 px-3 py-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors cursor-pointer text-xs font-bold"
+                        >
+                          <Trash2 size={16} />
+                          Delete Post
                         </button>
                       </div>
                     </div>
@@ -217,6 +228,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ posts, reports, 
           </div>
         </div>
       </div>
+
+      {reportToDelete && (
+        <ConfirmDialog
+          title="Delete Reported Post?"
+          message="This action will permanently remove the reported item from the platform. This cannot be undone."
+          confirmText="Delete Post"
+          variant="danger"
+          onConfirm={() => {
+            onDeletePost(reportToDelete);
+            setReportToDelete(null);
+          }}
+          onCancel={() => setReportToDelete(null)}
+        />
+      )}
     </div>
   );
 };
