@@ -24,12 +24,6 @@ const initDatabase = () => {
         db.pragma('foreign_keys = ON');
 
         db.exec(`
-            CREATE TABLE IF NOT EXISTS refresh_tokens (
-                                                          token TEXT PRIMARY KEY,
-                                                          user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-                );
-
             CREATE TABLE IF NOT EXISTS users (
                 id           TEXT     PRIMARY KEY,
                 username     TEXT     UNIQUE NOT NULL,
@@ -38,6 +32,12 @@ const initDatabase = () => {
                 role         TEXT     NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin')),
                 show_contact INTEGER  NOT NULL DEFAULT 1,
                 created_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE TABLE IF NOT EXISTS refresh_tokens (
+                token TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
             );
         
             CREATE TABLE IF NOT EXISTS posts (
@@ -103,6 +103,11 @@ const initDatabase = () => {
                 created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
             );
         `)
+        db.prepare(`INSERT OR IGNORE INTO report_categories (id, name) VALUES (1, 'Spam')`).run();
+        db.prepare(`INSERT OR IGNORE INTO report_categories (id, name) VALUES (2, 'Harassment')`).run();
+        db.prepare(`INSERT OR IGNORE INTO report_categories (id, name) VALUES (3, 'False Info')`).run();
+        db.prepare(`INSERT OR IGNORE INTO report_categories (id, name) VALUES (4, 'Inappropriate Content')`).run();
+        db.prepare(`INSERT OR IGNORE INTO report_categories (id, name) VALUES (5, 'Other')`).run();
         db.prepare("UPDATE users SET role = 'admin' WHERE id = '11f1443b-2bd6-4b4b-89ff-ad1ecf1b016d'").run();
 
         console.log("Database schema initialized successfully");
