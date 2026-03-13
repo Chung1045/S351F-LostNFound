@@ -3,7 +3,12 @@ require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const https = require('https');
+const helmet = require('helmet');
+const cors = require('cors');
 const socketIo = require('socket.io');
+const cookieParser = require('cookie-parser');
+
+const db = require('./public/db/database.cjs');
 
 const PORT = process.env.PORT || 9090;
 
@@ -16,35 +21,50 @@ app.set('view engine', 'ejs');
 app.set('views', __dirname + '/public/views');
 
 app.use(express.static('public'));
-
+app.use(helmet());
+app.use(cors());
+app.use(express.json());
+app.use(cookieParser());
 
 async function setupRoutes() {
     const pageRouteManager = require('./public/server/route-manager/pageRouteManager');
     const credentialManager = require('./public/server/route-manager/credentialManager');
+    const authRouteManager = require('./public/server/route-manager/authRouteManager');
+    const postRouteManager = require('./public/server/route-manager/postRouteManager');
+    const commentRouteManager = require('./public/server/route-manager/commentRouteManager');
+    const notificationRoutes = require('./public/server/route-manager/notificationRouteManager');
+    const moderationRouteManager = require('./public/server/route-manager/moderationRouteManager');
+
     /** You are gonna have more than one API route manager here, define them here */
-
-
     app.use("/", pageRouteManager);
 
-    /** With this, all routes defined in credentialManager will have a suffix "/api/" before the route */
+    /** With this, all routes defined in credentialManager.js will have a suffix "/api/" before the route */
     app.use("/api/", credentialManager);
 
     /** app.use("/api/", postRouteManager); */
+    app.use("/api/", authRouteManager);
+
+    app.use("/api/", postRouteManager);
+
+    app.use("/api/", commentRouteManager); 
+
+    app.use("/api/", moderationRouteManager);
+
+    app.use('/api', notificationRoutes);
 }
 
-try {
 
-    setupRoutes()
-
-    server.listen(PORT, () => {
-        const protocol = process.env.ENABLE_HTTPS === 'true' ? 'https' : 'http';
-        console.log(`Server running on ${protocol}://localhost:${PORT}`);
-        console.log('Server is now online');
-    });
-
-} catch (err) {
-    console.error(`Server Startup Failed:`, err);
-    console.error("Startup failed:", err);
-    process.exit(1);
-}
+(async () => {
+    try {
+        await setupRoutes();
+        server.listen(PORT, () => {
+            const protocol = process.env.ENABLE_HTTPS === 'true' ? 'https' : 'http';
+            console.log(`Server running on ${protocol}://localhost:${PORT}`);
+            console.log('Server is now online');
+        });
+    } catch (err) {
+        console.error('Server Startup Failed:', err);
+        process.exit(1);
+    }
+})();
 
