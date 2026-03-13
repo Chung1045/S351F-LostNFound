@@ -52,15 +52,28 @@ const login = async (req, res) => {
             return res.status(401).json({ message: 'Invalid email or password' });
         }
 
-        const token = jwt.sign(
+        const accessToken = jwt.sign(
             { id: user.id, role: user.role },
             process.env.JWT_SECRET,
-            { expiresIn: '7d' }
+            { expiresIn: '15m' }
         );
+
+        const refreshToken = uuidv4();
+
+        db.prepare(`
+            INSERT INTO refresh_tokens (token, user_id) VALUES (?, ?)
+        `).run(refreshToken, user.id);
+
+        res.cookie('refresh_token', refreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000
+        })
 
         return res.status(200).json({
             message: 'Login successful',
-            token,
+            accessToken,
             user: {
                 id: user.id,
                 username: user.username,
@@ -76,8 +89,56 @@ const login = async (req, res) => {
     }
 }
 
+// Refresh Token
+const refresh = (req, res) => {
+    const refreshToken = req.cookies.refresh_token;
+
+    if (!refreshToken) {
+        return res.status(401).json({ message: 'No refresh token provided' });
+    }
+
+    try {
+        const storedToken = db.prepare(`
+            SELECT * FROM refresh_tokens WHERE token = ?
+        `).get(refreshToken);
+
+        if (!storedToken) {
+            return res.status(401).json({ message: 'Invalid or expired refresh token' });
+        }
+
+        const user = db.prepare('SELECT * FROM users WHERE id = ?').get(storedToken.user_id);
+        if (!user) {
+            return res.status(401).json({ message: 'User not found' });
+        }
+
+        const accessToken = jwt.sign(
+            { id: user.id, role: user.role },
+            process.env.JWT_SECRET,
+            { expiresIn: '15m' }
+        );
+
+        return res.status(200).json({ accessToken });
+
+    } catch (err) {
+        console.error('Refresh error:', err);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
+};
+
 // Logout
 const logout = (req, res) => {
+    const refreshToken = req.cookies.refresh_token;
+
+    if (refreshToken) {
+        db.prepare('DELETE FROM refresh_tokens WHERE token = ?').run(refreshToken);
+    }
+
+    res.clearCookie('refreshToken', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict'
+    });
+
     return res.status(200).json({ message: 'Logged out successfully' });
 }
 
@@ -99,6 +160,8 @@ const updatePassword = async (req, res) => {
 
         const hashedPassword = await argon2.hash(newPassword);
         db.prepare('UPDATE users SET password = ? WHERE id = ?').run(hashedPassword, req.user.id);
+
+        db.prepare('DELETE FROM refresh_tokens WHERE user_id = ?').run(req.user.Id);
 
         return res.status(200).json({ message: 'Password updated successfully' });
 
@@ -154,4 +217,4 @@ const updateProfile = (req, res) => {
     }
 };
 
-module.exports = { register, login, logout, updatePassword, getProfile, updateProfile };
+module.exports = { register, refresh, login, logout, updatePassword, getProfile, updateProfile };

@@ -23,7 +23,13 @@ const initDatabase = () => {
         db.pragma('journal_mode = WAL');
         db.pragma('foreign_keys = ON');
 
-        db.exec(`    
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS refresh_tokens (
+                                                          token TEXT PRIMARY KEY,
+                                                          user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+                );
+
             CREATE TABLE IF NOT EXISTS users (
                 id           TEXT     PRIMARY KEY,
                 username     TEXT     UNIQUE NOT NULL,
