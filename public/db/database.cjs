@@ -23,7 +23,7 @@ const initDatabase = () => {
         db.pragma('journal_mode = WAL');
         db.pragma('foreign_keys = ON');
 
-        db.exec(`
+        db.exec(`    
             CREATE TABLE IF NOT EXISTS users (
                 id           TEXT     PRIMARY KEY,
                 username     TEXT     UNIQUE NOT NULL,
@@ -103,14 +103,49 @@ const initDatabase = () => {
                 created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
             );
         `)
+
         db.prepare(`INSERT OR IGNORE INTO report_categories (id, name) VALUES (1, 'Spam')`).run();
         db.prepare(`INSERT OR IGNORE INTO report_categories (id, name) VALUES (2, 'Harassment')`).run();
         db.prepare(`INSERT OR IGNORE INTO report_categories (id, name) VALUES (3, 'False Info')`).run();
         db.prepare(`INSERT OR IGNORE INTO report_categories (id, name) VALUES (4, 'Inappropriate Content')`).run();
         db.prepare(`INSERT OR IGNORE INTO report_categories (id, name) VALUES (5, 'Other')`).run();
         db.prepare("UPDATE users SET role = 'admin' WHERE id = '11f1443b-2bd6-4b4b-89ff-ad1ecf1b016d'").run();
-
+        
         console.log("Database schema initialized successfully");
+        initialized = true;
+
+        const adminExists = db.prepare("SELECT id FROM users WHERE role = 'admin' LIMIT 1").get();
+
+        if (!adminExists) {
+            console.log("No admin found. Creating default admin account...");
+
+            const defaultAdmin = {
+                id: '11f1443b-2bd6-4b4b-89ff-ad1ecf1b016d',
+                username: 'admin',
+                email: 'admin@gmail.com',
+                password: 'adminpassword123',
+                role: 'admin'
+            };
+
+            try {
+                db.prepare(`
+                    INSERT INTO users (id, username, email, password, role) 
+                    VALUES (?, ?, ?, ?, ?)
+                `).run(
+                    defaultAdmin.id, 
+                    defaultAdmin.username, 
+                    defaultAdmin.email, 
+                    defaultAdmin.password, 
+                    defaultAdmin.role
+                );
+                console.log("Default admin created");
+            } catch (insertErr) {
+                console.error("Failed to create default admin:", insertErr.message);
+            }
+        } else {
+            console.log("Admin account already exists.");
+        }
+
         initialized = true;
     } catch (err) {
         console.error('Database initialization failed:', err);
