@@ -3,6 +3,7 @@ const router = express.Router();
 const authMiddleware = require('../middleware/authMiddleware.cjs');
 const {
     register,
+    refresh,
     login,
     logout,
     updatePassword,
@@ -12,11 +13,10 @@ const {
     deleteAccount
 } = require('../controllers/authController.cjs');
 
-
 router.post('/auth/register', register);
 router.post('/auth/login', login);
 router.post('/auth/logout', logout);
-
+router.post('/auth/refresh', refresh);
 router.put('/users/password', authMiddleware, updatePassword);
 router.get('/users/me', authMiddleware, getProfile);
 router.put('/users/me', authMiddleware, updateProfile);
