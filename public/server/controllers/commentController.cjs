@@ -53,7 +53,7 @@ const addComment = (req, res) => {
                     VALUES (?, ?, ?, ?, ?)
                 `).run(post.user_id, sender_id, 'comment', notifyMsg, post_id);
                 
-                console.log(`🔔 Notification generated for User: ${post.user_id}`);
+                console.log(`Notification generated for User: ${post.user_id}`);
             }
 
             return result.lastInsertRowid;

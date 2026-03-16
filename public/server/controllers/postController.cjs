@@ -58,7 +58,6 @@ const getPostById = (req, res) => {
     const { id } = req.params;
 
     try {
-        // 1. 🟢 關鍵改動：使用 JOIN 同時查詢貼文和該作者的隱私設定
         const query = `
             SELECT posts.*, users.show_contact 
             FROM posts 
@@ -88,7 +87,6 @@ const getPostById = (req, res) => {
 // @route   POST /api/posts
 // @desc    Create Post (Security Fix: user_id from Token)
 const createPost = (req, res) => {
-    // 🟢 Security Fix: Get user_id from JWT payload, not req.body
     const user_id = req.user.id;
     const { type, category, title, description, location, item_datetime, contact_info, image_url } = req.body;
 
