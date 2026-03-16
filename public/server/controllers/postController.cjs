@@ -54,72 +54,61 @@ const getPosts = (req, res) => {
 // @desc    Get Post Detail (With Privacy Filter)
 // @route   GET /api/posts/:id
 // @desc    Get Post Detail (With Privacy Check)
-const getPostById = (req, res) => {
-    const { id } = req.params;
-
+const getPostById = async (req, res) => {
     try {
-        const query = `
-            SELECT posts.*, users.show_contact 
-            FROM posts 
-            JOIN users ON posts.user_id = users.id 
-            WHERE posts.id = ?
-        `;
-        
-        const post = db.prepare(query).get(id);
+        const { id } = req.params;
+
+        const post = db.prepare('SELECT * FROM posts WHERE id = ?').get(id);
 
         if (!post) {
-            return res.status(404).json({ error: "Post not found" });
+            return res.status(404).json({ error: 'Post not found' });
         }
 
+        const images = db.prepare('SELECT image_url FROM post_images WHERE post_id = ?').all(id);
 
-        if (post.show_contact === 0) {
-            post.contact_info = null; 
-        }
+        const imageUrls = images.map(img => img.image_url);
 
-        res.status(200).json(post);
+        res.status(200).json({
+            ...post,
+            images: imageUrls
+        });
 
     } catch (err) {
-        console.error("GET Post Detail error:", err);
+        console.error('Get Post Error:', err);
         res.status(500).json({ error: err.message });
     }
 };
 
 // @route   POST /api/posts
 // @desc    Create Post (Security Fix: user_id from Token)
-const createPost = (req, res) => {
-    const user_id = req.user.id;
-    const { type, category, title, description, location, item_datetime, contact_info, image_url } = req.body;
-
-    if (!type || !title) {
-        return res.status(400).json({ error: "missing required fields" });
-    }
-
+const createPost = async (req, res) => {
     try {
-        // Use Transaction to handle posts and images linkage
-        const executeTransaction = db.transaction(() => {
-            const postId = uuidv4();
+        const { type, category, title, description, location, item_datetime, contact_info, image_urls } = req.body;
+        const userId = req.user.id;
+        const postId = uuidv4();
 
-            // 1. Insert into posts
-            const stmt = db.prepare(`
-                INSERT INTO posts (id, user_id, type, category, title, description, location, item_datetime, contact_info)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        const insertPost = db.prepare(`
+            INSERT INTO posts (id, user_id, type, category, title, description, location, item_datetime, contact_info) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `);
+        
+        insertPost.run(postId, userId, type, category, title, description, location, item_datetime, contact_info);
+
+        if (image_urls && Array.isArray(image_urls)) {
+            const insertImage = db.prepare(`
+                INSERT INTO post_images (id, post_id, image_url) 
+                VALUES (?, ?, ?)
             `);
-            stmt.run(postId, user_id, type, category, title, description, location, item_datetime, contact_info);
 
-            // 2. Insert into post_images if image_url exists (Method A)
-            if (image_url) {
-                db.prepare(`INSERT INTO post_images (id, post_id, image_url) VALUES (?, ?, ?)`)
-                  .run(uuidv4(), postId, image_url);
+            for (const url of image_urls) {
+                insertImage.run(uuidv4(), postId, url);
             }
+        }
 
-            return postId;
-        });
-
-        const id = executeTransaction();
-        res.status(201).json({ message: "Post created successfully", postId: id });
-
+        res.status(201).json({ message: 'Post created successfully', postId });
     } catch (err) {
-        res.status(400).json({ error: err.message });
+        console.error('Create Post Error:', err);
+        res.status(500).json({ error: err.message });
     }
 };
 

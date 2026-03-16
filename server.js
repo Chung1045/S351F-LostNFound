@@ -21,20 +21,23 @@ app.set('view engine', 'ejs');
 app.set('views', __dirname + '/public/views');
 
 app.use(express.static('public'));
-app.use(helmet());
+app.use(helmet({crossOriginResourcePolicy: false}));
 app.use(cors());
 app.use(express.json());
 app.use(cookieParser());
 
 async function setupRoutes() {
-    const pageRouteManager = require('./public/server/route-manager/pageRouteManager');
-    const credentialManager = require('./public/server/route-manager/credentialManager');
+    const uploadRoutes = require('./public/server/route-manager/uploadRouteManager');
     const authRouteManager = require('./public/server/route-manager/authRouteManager');
     const postRouteManager = require('./public/server/route-manager/postRouteManager');
+    const pageRouteManager = require('./public/server/route-manager/pageRouteManager');
+    const credentialManager = require('./public/server/route-manager/credentialManager');
     const commentRouteManager = require('./public/server/route-manager/commentRouteManager');
     const notificationRoutes = require('./public/server/route-manager/notificationRouteManager');
     const moderationRouteManager = require('./public/server/route-manager/moderationRouteManager');
 
+    app.use('/api', uploadRoutes);
+    
     /** You are gonna have more than one API route manager here, define them here */
     app.use("/", pageRouteManager);
 
@@ -51,6 +54,8 @@ async function setupRoutes() {
     app.use("/api/", moderationRouteManager);
 
     app.use('/api', notificationRoutes);
+
+    app.use('/uploads', express.static('public/uploads'));
 }
 
 
