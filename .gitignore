@@ -10,3 +10,5 @@ node_modules/
 /dataSources/
 /dataSources.local.xml
 /dist
+*.db-wal
+*.db-shm
