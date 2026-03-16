@@ -181,41 +181,10 @@ function AppContent() {
     }
   };
 
-
-  // TODO
-  // const handleUpdatePostStatus = async (postId: string) => {
-  //   try {
-  //     await api.posts.updateStatus(postId, 'resolved'); // Assuming 'resolved' maps to 'collected' or 'found' depending on logic, backend sets to 'resolved' or specific status?
-  //     // Backend updatePostStatus takes status from body.
-  //     // Let's check backend logic. It takes status from body.
-  //     // Wait, frontend ItemDetails calls onUpdateStatus which calls handleUpdatePostStatus.
-  //     // ItemDetails passes nothing.
-  //     // Let's assume we want to mark as 'collected' if found, or 'found' if lost?
-  //     // The backend constraint is CHECK (status IN ('active', 'collected', 'found')).
-  //     // Let's just set it to 'found' for now as a generic resolution, or 'collected'.
-  //     // The mock implementation set it to 'resolved'. But DB constraint doesn't have 'resolved'.
-  //     // DB has 'active', 'collected', 'found'.
-  //     // Let's use 'collected' as "resolved".
-  //
-  //     // Wait, let's check ItemDetails.tsx to see what it expects.
-  //     // It says "Mark as Found" or "Mark as Collected".
-  //     // Let's just toggle status.
-  //
-  //     // For now, I'll send 'collected' as a safe default for resolution.
-  //     await api.posts.updateStatus(postId, 'collected');
-  //
-  //     setPosts(prev => prev.map(p => p.id === postId ? { ...p, status: 'collected' } : p));
-  //     toast.success('Status updated successfully!');
-  //   } catch (error) {
-  //     toast.error('Failed to update status');
-  //   }
-  // };
-
   const handleUpdatePostStatus = async (postId: string, type: Post['type']) => {
     try {
       // Determine the new status based on the post type
       let newStatus: Post['status'];
-      // The value passed in is inlowercase, not captipalized
 
       console.log(`Post Type: ${type} `);
       console.log(`Post ID: ${postId} `);

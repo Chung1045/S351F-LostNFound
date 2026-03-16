@@ -1,6 +1,7 @@
 const { v4: uuidv4 } = require('uuid');
 const db = require('../../db/database.cjs');
 
+// TDOD: Update with the one from the backend that supports imageURL fetching
 const getPosts = (req, res) => {
     try {
         const stmt = db.prepare(`
@@ -39,35 +40,6 @@ const getPosts = (req, res) => {
         res.status(500).json({ error: 'Internal server error' });
     }
 };
-
-// const createPost = (req, res) => {
-//     try {
-//         const { type, title, category, description, location, date, time, contactInfo, imageUrl } = req.body;
-//         const id = uuidv4();
-//         const userId = req.user.id;
-//         const itemDatetime = `${date}T${time}:00Z`;
-//
-//         const stmt = db.prepare(`
-//             INSERT INTO posts (id, user_id, type, category, title, description, location, item_datetime, contact_info, status)
-//             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')
-//         `);
-//
-//         // Ensure type is capitalized for DB check constraint ('Lost', 'Found')
-//         const dbType = type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
-//
-//         stmt.run(id, userId, dbType, category, title, description, location, itemDatetime, contactInfo);
-//
-//         if (imageUrl) {
-//             const imgStmt = db.prepare(`INSERT INTO post_images (id, post_id, image_url) VALUES (?, ?, ?)`);
-//             imgStmt.run(uuidv4(), id, imageUrl);
-//         }
-//
-//         res.status(201).json({ message: 'Post created successfully', id });
-//     } catch (error) {
-//         console.error(error);
-//         res.status(500).json({ error: 'Internal server error' });
-//     }
-// };
 
 // @route   POST /api/posts
 // @desc    Create Post (Security Fix: user_id from Token)
@@ -112,35 +84,6 @@ const createPost = (req, res) => {
     }
 };
 
-// const updatePostStatus = (req, res) => {
-//     try {
-//         const { id } = req.params;
-//         const { status } = req.body;
-//         const userId = req.user.id;
-//         const userRole = req.user.role;
-//
-//         // Check ownership or admin
-//         const postStmt = db.prepare('SELECT user_id FROM posts WHERE id = ?');
-//         const post = postStmt.get(id);
-//
-//         if (!post) {
-//             return res.status(404).json({ error: 'Post not found' });
-//         }
-//
-//         if (post.user_id !== userId && userRole !== 'admin') {
-//             return res.status(403).json({ error: 'Unauthorized' });
-//         }
-//
-//         const stmt = db.prepare('UPDATE posts SET status = ? WHERE id = ?');
-//         stmt.run(status, id);
-//
-//         res.json({ message: 'Post status updated' });
-//     } catch (error) {
-//         console.error(error);
-//         res.status(500).json({ error: 'Internal server error' });
-//     }
-// };
-
 // @route   PUT /api/posts/:id
 // @desc    Update Post (Owner or Admin Only)
 const updatePost = (req, res) => {
@@ -176,30 +119,44 @@ const updatePost = (req, res) => {
     }
 };
 
+// @route   DELETE /api/posts/:id
+// @desc    Delete a post (Owner or Admin Only)
 const deletePost = (req, res) => {
-    try {
-        const { id } = req.params;
-        const userId = req.user.id;
-        const userRole = req.user.role;
+    const { id } = req.params;
 
-        const postStmt = db.prepare('SELECT user_id FROM posts WHERE id = ?');
-        const post = postStmt.get(id);
+    console.log("delete post is invoked")
+
+    // 1.getting current user info from auth middleware
+    const currentUserId = req.user.id;
+    const currentUserRole = req.user.role;
+
+    try {
+
+        const post = db.prepare('SELECT user_id FROM posts WHERE id = ?').get(id);
 
         if (!post) {
-            return res.status(404).json({ error: 'Post not found' });
+            return res.status(404).json({ error: "Post not found" });
         }
 
-        if (post.user_id !== userId && userRole !== 'admin') {
-            return res.status(403).json({ error: 'Unauthorized' });
+        // 3. Only allow deletion if the user is the post owner or an admin
+        if (post.user_id !== currentUserId && currentUserRole !== 'admin') {
+            return res.status(403).json({
+                error: 'Only admin and post owner can delete this post'
+            });
         }
 
-        const stmt = db.prepare('DELETE FROM posts WHERE id = ?');
-        stmt.run(id);
+        // 4. Perform the delete operation
+        const result = db.prepare("DELETE FROM posts WHERE id = ?").run(id);
 
-        res.json({ message: 'Post deleted' });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Internal server error' });
+        if (result.changes === 0) {
+            return res.status(404).json({ error: "Delete failed, post not found" });
+        }
+
+        res.status(200).json({ message: "Post deleted successfully" });
+
+    } catch (err) {
+        console.error("Delete Post error:", err);
+        res.status(500).json({ error: err.message });
     }
 };
 
