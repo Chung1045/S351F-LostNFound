@@ -2,7 +2,6 @@ const Database = require('better-sqlite3');
 const path = require('path');
 const fs = require('fs');
 const argon2 = require('argon2');
-const { v4: uuidv4 } = require('uuid');
 
 const dbFolder = path.join(__dirname, '..', 'db');
 const dbPath = path.join(dbFolder, 'lost_and_found.db')
@@ -25,7 +24,7 @@ const initDatabase = async () => {
         db.pragma('journal_mode = WAL');
         db.pragma('foreign_keys = ON');
 
-        db.exec(`
+        db.exec(`    
             CREATE TABLE IF NOT EXISTS users (
                 id           TEXT     PRIMARY KEY,
                 username     TEXT     UNIQUE NOT NULL,
@@ -105,35 +104,36 @@ const initDatabase = async () => {
                 created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
             );
         `)
+
         db.prepare(`INSERT OR IGNORE INTO report_categories (id, name) VALUES (1, 'Spam')`).run();
         db.prepare(`INSERT OR IGNORE INTO report_categories (id, name) VALUES (2, 'Harassment')`).run();
         db.prepare(`INSERT OR IGNORE INTO report_categories (id, name) VALUES (3, 'False Info')`).run();
         db.prepare(`INSERT OR IGNORE INTO report_categories (id, name) VALUES (4, 'Inappropriate Content')`).run();
         db.prepare(`INSERT OR IGNORE INTO report_categories (id, name) VALUES (5, 'Other')`).run();
-        db.prepare("UPDATE users SET role = 'admin' WHERE id = '11f1443b-2bd6-4b4b-89ff-ad1ecf1b016d'").run();
+        // Create Admin account
+        const defaultAdmin = {
+            id: '11f1443b-2bd6-4b4b-89ff-ad1ecf1b016d',
+            username: 'admin',
+            email: 'admin@gmail.com',
+            password: await argon2.hash('adminpassword123'),
+            role: 'admin'
+        };
+
+        db.prepare(`INSERT OR IGNORE INTO users (id, username, email, password, role) VALUES (?, ?, ?, ?, ?)`).run(
+            defaultAdmin.id,
+            defaultAdmin.username,
+            defaultAdmin.email,
+            defaultAdmin.password,
+            defaultAdmin.role
+        );
 
         console.log("Database schema initialized successfully");
-
-        // Seed default admin user
-        const adminCheck = db.prepare("SELECT * FROM users WHERE role = 'admin'").get();
-        if (!adminCheck) {
-            console.log("Creating default admin account...");
-            try {
-                const hashedPassword = await argon2.hash('admin123');
-                const id = uuidv4();
-                db.prepare("INSERT INTO users (id, username, email, password, role) VALUES (?, ?, ?, ?, ?)").run(id, 'admin', 'admin@foundit.com', hashedPassword, 'admin');
-                console.log("Default admin account created: Email: admin@foundit.com, Password: admin123");
-            } catch (seedErr) {
-                console.error("Failed to seed admin account:", seedErr);
-            }
-        }
-
         initialized = true;
     } catch (err) {
         console.error('Database initialization failed:', err);
     }
 }
 
-initDatabase();
+initDatabase()
 
 module.exports = db;

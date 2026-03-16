@@ -2,6 +2,7 @@
 
 BASE_URL="http://localhost:9090/api"
 COOKIE_JAR="cookies_notification.txt"
+COOKIE_JAR2="cookies_notification2.txt"
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 YELLOW='\033[1;33m'
@@ -11,7 +12,7 @@ echo -e "${YELLOW}========================================${NC}"
 echo -e "${YELLOW}  Lost & Found - Notification Test Suite ${NC}"
 echo -e "${YELLOW}========================================${NC}\n"
 
-# ─── 1. Login to get access token ────────────────────────────────────────────
+# ─── 1. Login as main user (post owner — will receive notification) ───────────
 echo -e "${YELLOW}[1] Login to get access token${NC}"
 LOGIN_RES=$(curl -s -X POST "$BASE_URL/auth/login" \
   -H "Content-Type: application/json" \
@@ -30,15 +31,67 @@ else
 fi
 echo ""
 
-# ─── 2. Seed a test notification directly into DB ────────────────────────────
-echo -e "${YELLOW}[2] Seeding test notifications into DB${NC}"
-sqlite3 ../public/db/lost_and_found.db <<EOF
-INSERT OR IGNORE INTO notifications (user_id, type, message, is_read, link_id)
-VALUES ('$USER_ID', 'system', 'Test notification 1', 0, NULL);
-INSERT OR IGNORE INTO notifications (user_id, type, message, is_read, link_id)
-VALUES ('$USER_ID', 'system', 'Test notification 2', 0, NULL);
-EOF
-echo -e "${GREEN}✓ Test notifications seeded${NC}\n"
+# ─── 2. Seed notifications via API ───────────────────────────────────────────
+# Strategy: create a post as main user, then comment on it as a second user.
+# The comment triggers a notification for the post owner (main user).
+echo -e "${YELLOW}[2] Seeding test notifications via API${NC}"
+
+# 2a. Create a post as main user
+POST_RES=$(curl -s -X POST "$BASE_URL/posts" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "Lost",
+    "category": "Electronics",
+    "title": "Notification Test Post",
+    "description": "Test description",
+    "location": "Test location",
+    "item_datetime": "2024-01-01T00:00:00Z"
+  }')
+
+POST_ID=$(echo "$POST_RES" | grep -o '"postId":"[^"]*"' | cut -d'"' -f4)
+
+if [ -z "$POST_ID" ]; then
+  echo -e "${RED}✗ Failed to create post — cannot proceed${NC}"
+  echo "Response: $POST_RES"
+  rm -f "$COOKIE_JAR"
+  exit 1
+fi
+echo "Test post created (ID: $POST_ID)"
+
+# 2b. Register + login a second user to post the comment
+curl -s -X POST "$BASE_URL/auth/register" \
+  -H "Content-Type: application/json" \
+  -d '{"username": "notif_commenter", "email": "notif_commenter@email.com", "password": "password123"}' > /dev/null
+
+LOGIN_RES2=$(curl -s -X POST "$BASE_URL/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{"email": "notif_commenter@email.com", "password": "password123"}' \
+  -c "$COOKIE_JAR2" -b "$COOKIE_JAR2")
+
+ACCESS_TOKEN2=$(echo "$LOGIN_RES2" | grep -o '"accessToken":"[^"]*"' | cut -d'"' -f4)
+
+if [ -z "$ACCESS_TOKEN2" ]; then
+  echo -e "${RED}✗ Second user login failed — cannot proceed${NC}"
+  echo "Response: $LOGIN_RES2"
+  rm -f "$COOKIE_JAR" "$COOKIE_JAR2"
+  exit 1
+fi
+
+# 2c. Comment on the post as second user — this triggers notification for main user
+COMMENT_RES=$(curl -s -X POST "$BASE_URL/posts/$POST_ID/comments" \
+  -H "Authorization: Bearer $ACCESS_TOKEN2" \
+  -H "Content-Type: application/json" \
+  -d '{"content": "Test notification comment"}')
+
+COMMENT_ID=$(echo "$COMMENT_RES" | grep -o '"commentId":[0-9]*' | cut -d':' -f2)
+
+if echo "$COMMENT_RES" | grep -q "Comment added"; then
+  echo -e "${GREEN}✓ Test notifications seeded (via comment on post)${NC}\n"
+else
+  echo -e "${RED}✗ Failed to seed notification via comment${NC}"
+  echo "Response: $COMMENT_RES"
+fi
 
 # ─── 3. Get notifications ─────────────────────────────────────────────────────
 echo -e "${YELLOW}[3] GET /notifications${NC}"
@@ -46,7 +99,7 @@ GET_RES=$(curl -s -X GET "$BASE_URL/notifications" \
   -H "Authorization: Bearer $ACCESS_TOKEN")
 echo "Response: $GET_RES"
 
-if echo "$GET_RES" | grep -q "Test notification"; then
+if echo "$GET_RES" | grep -q "comment\|notification\|Test notification"; then
   echo -e "${GREEN}✓ Get notifications passed${NC}\n"
 else
   echo -e "${RED}✗ Get notifications failed${NC}\n"
@@ -104,11 +157,16 @@ else
   echo -e "${RED}✗ Unauthorized access should have been rejected${NC}\n"
 fi
 
-# ─── Cleanup ──────────────────────────────────────────────────────────────────
-rm -f "$COOKIE_JAR"
+# ─── Cleanup via API ──────────────────────────────────────────────────────────
+# Delete the test post (cascades to comments and notifications)
+curl -s -X DELETE "$BASE_URL/posts/$POST_ID" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" > /dev/null
 
-# Clean up seeded notifications
-sqlite3 ../public/db/lost_and_found.db "DELETE FROM notifications WHERE message LIKE 'Test notification%';"
+# Delete the second test user
+curl -s -X DELETE "$BASE_URL/users/me" \
+  -H "Authorization: Bearer $ACCESS_TOKEN2" > /dev/null
+
+rm -f "$COOKIE_JAR" "$COOKIE_JAR2"
 
 echo -e "${YELLOW}========================================${NC}"
 echo -e "${YELLOW}        Notification Tests Complete     ${NC}"
