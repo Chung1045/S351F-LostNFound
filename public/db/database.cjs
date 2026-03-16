@@ -1,19 +1,12 @@
 const Database = require('better-sqlite3');
 const path = require('path');
 const fs = require('fs');
+const argon2 = require('argon2');
 
 const dbFolder = path.join(__dirname, '..', 'db');
 const dbPath = path.join(dbFolder, 'lost_and_found.db')
 
 fs.mkdirSync(dbFolder, { recursive: true });
-
-const defaultAdmin = {
-    id: '11f1443b-2bd6-4b4b-89ff-ad1ecf1b016d',
-    username: 'admin',
-    email: 'admin@gmail.com',
-    password: 'adminpassword123',
-    role: 'admin'
-};
 
 const db = new Database(dbPath, {
     // Leo: Temporarily commented out verbose logging since it was flooding the console with every SQL statement
@@ -22,7 +15,7 @@ const db = new Database(dbPath, {
 
 let initialized = false;
 
-const initDatabase = () => {
+const initDatabase = async () => {
     if (initialized){
         return;
     }
@@ -118,6 +111,14 @@ const initDatabase = () => {
         db.prepare(`INSERT OR IGNORE INTO report_categories (id, name) VALUES (4, 'Inappropriate Content')`).run();
         db.prepare(`INSERT OR IGNORE INTO report_categories (id, name) VALUES (5, 'Other')`).run();
         // Create Admin account
+        const defaultAdmin = {
+            id: '11f1443b-2bd6-4b4b-89ff-ad1ecf1b016d',
+            username: 'admin',
+            email: 'admin@gmail.com',
+            password: await argon2.hash('adminpassword123'),
+            role: 'admin'
+        };
+
         db.prepare(`INSERT OR IGNORE INTO users (id, username, email, password, role) VALUES (?, ?, ?, ?, ?)`).run(
             defaultAdmin.id,
             defaultAdmin.username,
@@ -133,6 +134,6 @@ const initDatabase = () => {
     }
 }
 
-initDatabase();
+initDatabase()
 
 module.exports = db;
