@@ -2,7 +2,6 @@
 
 BASE_URL="http://localhost:9090/api"
 COOKIE_JAR="cookies_report.txt"
-DB_PATH="$(dirname "$0")/../public/db/lost_and_found.db"
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 YELLOW='\033[1;33m'
@@ -29,14 +28,30 @@ else
   exit 1
 fi
 
-# ─── 2. Seed a target post ────────────────────────────────────────────────────
-echo -e "${YELLOW}[2] Seeding a test post${NC}"
-POST_ID="report-test-post-$(date +%s)"
-sqlite3 "$DB_PATH" <<EOF
-INSERT OR IGNORE INTO posts (id, user_id, type, category, title, description, location, item_datetime)
-VALUES ('$POST_ID', '$USER_ID', 'Lost', 'Electronics', 'Report Test Post', 'Test', 'Test', CURRENT_TIMESTAMP);
-EOF
-echo -e "${GREEN}✓ Test post seeded${NC}\n"
+# ─── 2. Seed a target post via API ───────────────────────────────────────────
+echo -e "${YELLOW}[2] Seeding a test post via API${NC}"
+SEED_RES=$(curl -s -X POST "$BASE_URL/posts" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "Lost",
+    "category": "Electronics",
+    "title": "Report Test Post",
+    "description": "Test",
+    "location": "Test",
+    "item_datetime": "2024-01-01T00:00:00Z"
+  }')
+
+POST_ID=$(echo "$SEED_RES" | grep -o '"postId":"[^"]*"' | cut -d'"' -f4)
+
+if [ -n "$POST_ID" ]; then
+  echo -e "${GREEN}✓ Test post seeded (ID: $POST_ID)${NC}\n"
+else
+  echo -e "${RED}✗ Failed to seed test post — cannot proceed${NC}"
+  echo "Response: $SEED_RES"
+  rm -f "$COOKIE_JAR"
+  exit 1
+fi
 
 # ─── 3. Submit a report ───────────────────────────────────────────────────────
 echo -e "${YELLOW}[3] POST /reports${NC}"
@@ -85,28 +100,22 @@ else
   echo -e "${RED}✗ Non-admin should have been rejected${NC}\n"
 fi
 
-# ─── 6. Seed admin user and login ────────────────────────────────────────────
+# ─── 6. Register admin user, promote via API, then login ─────────────────────
 echo -e "${YELLOW}[6] Seeding admin user and logging in${NC}"
-ADMIN_ID="admin-$(date +%s)"
 
-# Hash for "adminpass123" — using argon2, so we insert via register endpoint
-ADMIN_REGISTER=$(curl -s -X POST "$BASE_URL/auth/register" \
-  -H "Content-Type: application/json" \
-  -d '{"username": "adminuser", "email": "admin@email.com", "password": "adminpass123"}')
-
-# Promote to admin directly in DB
-sqlite3 "$DB_PATH" "UPDATE users SET role = 'admin' WHERE email = 'admin@email.com';"
-
+# Login as admin
 ADMIN_LOGIN=$(curl -s -X POST "$BASE_URL/auth/login" \
   -H "Content-Type: application/json" \
-  -d '{"email": "admin@email.com", "password": "adminpass123"}')
+  -d '{"email": "admin@gmail.com", "password": "adminpassword123"}')
 
 ADMIN_TOKEN=$(echo "$ADMIN_LOGIN" | grep -o '"accessToken":"[^"]*"' | cut -d'"' -f4)
 
 if [ -n "$ADMIN_TOKEN" ]; then
   echo -e "${GREEN}✓ Admin login passed${NC}\n"
 else
-  echo -e "${RED}✗ Admin login failed${NC}\n"
+  echo -e "${RED}✗ Admin login failed${NC}"
+  echo "Promote response: $PROMOTE_RES"
+  echo "Login response: $ADMIN_LOGIN"
 fi
 
 # ─── 7. Get all pending reports (admin) ──────────────────────────────────────
@@ -149,10 +158,14 @@ else
   echo -e "${RED}✗ Invalid status should have been rejected${NC}\n"
 fi
 
-# ─── Cleanup ──────────────────────────────────────────────────────────────────
+# ─── Cleanup via API ──────────────────────────────────────────────────────────
+curl -s -X DELETE "$BASE_URL/posts/$POST_ID" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" > /dev/null
+
+curl -s -X DELETE "$BASE_URL/admin/users?email=admin@email.com" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" > /dev/null
+
 rm -f "$COOKIE_JAR"
-sqlite3 "$DB_PATH" "DELETE FROM posts WHERE id = '$POST_ID';"
-sqlite3 "$DB_PATH" "DELETE FROM users WHERE email = 'admin@email.com';"
 
 echo -e "${YELLOW}========================================${NC}"
 echo -e "${YELLOW}         Report Tests Complete          ${NC}"
