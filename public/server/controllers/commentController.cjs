@@ -47,6 +47,8 @@ const addComment = (req, res) => {
     const { content } = req.body;
     const sender_id = req.user.id;
 
+    console.log(`Received comment for post ${postId} from user ${sender_id} with content: ${content}`);
+
     if (!content) {
         return res.status(400).json({ error: 'Comment cannot be empty' });
     }

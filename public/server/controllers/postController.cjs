@@ -41,6 +41,40 @@ const getPosts = (req, res) => {
     }
 };
 
+// @route   GET /api/posts/:id
+// @desc    Get Post Detail (With Privacy Filter)
+// @route   GET /api/posts/:id
+// @desc    Get Post Detail (With Privacy Check)
+const getPostById = (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const query = `
+            SELECT posts.*, users.show_contact 
+            FROM posts 
+            JOIN users ON posts.user_id = users.id 
+            WHERE posts.id = ?
+        `;
+
+        const post = db.prepare(query).get(id);
+
+        if (!post) {
+            return res.status(404).json({ error: "Post not found" });
+        }
+
+
+        if (post.show_contact === 0) {
+            post.contact_info = null;
+        }
+
+        res.status(200).json(post);
+
+    } catch (err) {
+        console.error("GET Post Detail error:", err);
+        res.status(500).json({ error: err.message });
+    }
+};
+
 // @route   POST /api/posts
 // @desc    Create Post (Security Fix: user_id from Token)
 const createPost = (req, res) => {
@@ -160,4 +194,4 @@ const deletePost = (req, res) => {
     }
 };
 
-module.exports = { getPosts, createPost, updatePost, deletePost };
+module.exports = { getPosts, getPostById, createPost, updatePost, deletePost };
