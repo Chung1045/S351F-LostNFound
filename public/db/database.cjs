@@ -118,7 +118,7 @@ const initDatabase = () => {
         db.prepare(`INSERT OR IGNORE INTO report_categories (id, name) VALUES (4, 'Inappropriate Content')`).run();
         db.prepare(`INSERT OR IGNORE INTO report_categories (id, name) VALUES (5, 'Other')`).run();
         // Create Admin account
-        db.prepare(`INSERT INTO users (id, username, email, password, role) VALUES (?, ?, ?, ?, ?)`).run(
+        db.prepare(`INSERT OR IGNORE INTO users (id, username, email, password, role) VALUES (?, ?, ?, ?, ?)`).run(
             defaultAdmin.id,
             defaultAdmin.username,
             defaultAdmin.email,
