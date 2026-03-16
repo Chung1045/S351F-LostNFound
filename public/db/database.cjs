@@ -7,6 +7,14 @@ const dbPath = path.join(dbFolder, 'lost_and_found.db')
 
 fs.mkdirSync(dbFolder, { recursive: true });
 
+const defaultAdmin = {
+    id: '11f1443b-2bd6-4b4b-89ff-ad1ecf1b016d',
+    username: 'admin',
+    email: 'admin@gmail.com',
+    password: 'adminpassword123',
+    role: 'admin'
+};
+
 const db = new Database(dbPath, {
     // Leo: Temporarily commented out verbose logging since it was flooding the console with every SQL statement
     // verbose: console.log
@@ -109,43 +117,16 @@ const initDatabase = () => {
         db.prepare(`INSERT OR IGNORE INTO report_categories (id, name) VALUES (3, 'False Info')`).run();
         db.prepare(`INSERT OR IGNORE INTO report_categories (id, name) VALUES (4, 'Inappropriate Content')`).run();
         db.prepare(`INSERT OR IGNORE INTO report_categories (id, name) VALUES (5, 'Other')`).run();
-        db.prepare("UPDATE users SET role = 'admin' WHERE id = '11f1443b-2bd6-4b4b-89ff-ad1ecf1b016d'").run();
-        
+        // Create Admin account
+        db.prepare(`INSERT INTO users (id, username, email, password, role) VALUES (?, ?, ?, ?, ?)`).run(
+            defaultAdmin.id,
+            defaultAdmin.username,
+            defaultAdmin.email,
+            defaultAdmin.password,
+            defaultAdmin.role
+        );
+
         console.log("Database schema initialized successfully");
-        initialized = true;
-
-        const adminExists = db.prepare("SELECT id FROM users WHERE role = 'admin' LIMIT 1").get();
-
-        if (!adminExists) {
-            console.log("No admin found. Creating default admin account...");
-
-            const defaultAdmin = {
-                id: '11f1443b-2bd6-4b4b-89ff-ad1ecf1b016d',
-                username: 'admin',
-                email: 'admin@gmail.com',
-                password: 'adminpassword123',
-                role: 'admin'
-            };
-
-            try {
-                db.prepare(`
-                    INSERT INTO users (id, username, email, password, role) 
-                    VALUES (?, ?, ?, ?, ?)
-                `).run(
-                    defaultAdmin.id, 
-                    defaultAdmin.username, 
-                    defaultAdmin.email, 
-                    defaultAdmin.password, 
-                    defaultAdmin.role
-                );
-                console.log("Default admin created");
-            } catch (insertErr) {
-                console.error("Failed to create default admin:", insertErr.message);
-            }
-        } else {
-            console.log("Admin account already exists.");
-        }
-
         initialized = true;
     } catch (err) {
         console.error('Database initialization failed:', err);
