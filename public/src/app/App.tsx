@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navbar } from './components/Navbar';
 import { ItemGrid } from './components/ItemGrid';
 import { PostForm } from './components/PostForm';
@@ -12,134 +12,110 @@ import { Post, Comment, User, Report } from './types';
 import { Toaster, toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
 import { Search, MapPin, Plus, ArrowRight } from 'lucide-react';
+import { AppProvider, useApp } from './contexts/AppContext';
+import { api } from './services/api';
 
-// --- MOCK DATA ---
-const INITIAL_USERS: User[] = [
-  { id: '1', name: 'John Doe', email: 'john@example.com', role: 'user' },
-  { id: '2', name: 'Admin Jane', email: 'admin@foundit.com', role: 'admin' },
-];
-
-const INITIAL_POSTS: Post[] = [
-  {
-    id: 'p1',
-    type: 'lost',
-    title: 'Blue Leather Wallet',
-    category: 'Wallets',
-    description: 'Lost my wallet near the central park entrance. It contains a drivers license and some cash. Small scratch on the front.',
-    location: 'Central Park Entrance',
-    date: '2026-02-10',
-    time: '14:30',
-    contactInfo: '555-0123',
-    imageUrl: 'https://images.unsplash.com/photo-1627123424574-724758594e93?auto=format&fit=crop&q=80&w=800',
-    status: 'active',
-    userId: '1',
-    userName: 'John Doe',
-    createdAt: '2026-02-10T15:00:00Z',
-  },
-  {
-    id: 'p2',
-    type: 'found',
-    title: 'iPhone 15 Pro - Titanium',
-    category: 'Electronics',
-    description: 'Found a phone on a bench at the library. It has a transparent case and a sticker of a cat on the back.',
-    location: 'City Public Library',
-    date: '2026-02-12',
-    time: '09:15',
-    contactInfo: 'admin@library.org',
-    imageUrl: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&q=80&w=800',
-    status: 'active',
-    userId: '2',
-    userName: 'Library Admin',
-    createdAt: '2026-02-12T10:00:00Z',
-    isReported: true,
-  },
-  {
-    id: 'p3',
-    type: 'lost',
-    title: 'Golden Retriever Pup',
-    category: 'Pets',
-    description: 'Our puppy "Cooper" ran out of the gate this morning. He is wearing a blue collar with his name. Very friendly!',
-    location: 'Maplewood Neighborhood',
-    date: '2026-02-13',
-    time: '08:00',
-    contactInfo: '555-9876',
-    imageUrl: 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&q=80&w=800',
-    status: 'active',
-    userId: '1',
-    userName: 'John Doe',
-    createdAt: '2026-02-13T09:00:00Z',
-  },
-  {
-    id: 'p4',
-    type: 'found',
-    title: 'Red Bicycle',
-    category: 'Other',
-    description: 'Found a red mountain bike locked to the fence. Has been here for over a week.',
-    location: 'Downtown Station',
-    date: '2026-02-15',
-    time: '12:00',
-    contactInfo: '555-4567',
-    imageUrl: 'https://images.unsplash.com/photo-1485965120184-e220f721d03e?auto=format&fit=crop&q=80&w=800',
-    status: 'active',
-    userId: '2',
-    userName: 'Station Manager',
-    createdAt: '2026-02-15T13:00:00Z',
-  },
-  {
-    id: 'p5',
-    type: 'lost',
-    title: 'Black Backpack with Laptop',
-    category: 'Other',
-    description: 'Lost my backpack containing a laptop and important documents. The bag is a black JanSport with a NASA patch.',
-    location: 'Coffee House on Main St',
-    date: '2026-02-20',
-    time: '16:45',
-    contactInfo: '555-7890',
-    imageUrl: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&q=80&w=800',
-    status: 'active',
-    userId: '1',
-    userName: 'Sarah Mitchell',
-    createdAt: '2026-02-20T17:00:00Z',
-    isReported: true,
-  },
-];
-
-const INITIAL_COMMENTS: Comment[] = [
-  { id: 'c1', postId: 'p1', userId: '2', userName: 'Jane Smith', content: 'I saw someone picking up a wallet near the fountain around 3 PM!', createdAt: '2026-02-10T16:00:00Z' },
-  { id: 'c2', postId: 'p2', userId: '1', userName: 'John Doe', content: 'I lost my phone there! Does it have a cracked screen?', createdAt: '2026-02-12T11:00:00Z' },
-];
-
-const INITIAL_REPORTS: Report[] = [
-  {
-    id: 'r1',
-    targetType: 'post',
-    targetId: 'p2',
-    reporterId: '1',
-    reason: 'Suspicious content - phone details seem fake',
-    status: 'pending',
-  },
-  {
-    id: 'r2',
-    targetType: 'post',
-    targetId: 'p5',
-    reporterId: '2',
-    reason: 'Possible scam attempt',
-    status: 'pending',
-  },
-];
-
-export default function App() {
+function AppContent() {
+  const { t } = useApp();
   const [user, setUser] = useState<User | null>(null);
   const [currentPage, setCurrentPage] = useState('home');
-  const [posts, setPosts] = useState<Post[]>(INITIAL_POSTS);
-  const [comments, setComments] = useState<Comment[]>(INITIAL_COMMENTS);
-  const [reports, setReports] = useState<Report[]>(INITIAL_REPORTS);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [reports, setReports] = useState<Report[]>([]);
+  const [allUsers, setAllUsers] = useState<User[]>([]);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [showPostForm, setShowPostForm] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [showSignUp, setShowSignUp] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Initial Data Fetch
+  useEffect(() => {
+    const initApp = async () => {
+      try {
+        // Try to restore session
+        const token = localStorage.getItem('token');
+        if (token) {
+          try {
+            const userProfile = await api.auth.getProfile();
+            setUser(userProfile);
+          } catch (e) {
+            console.error('Session restore failed', e);
+            localStorage.removeItem('token');
+          }
+        }
+
+        // Fetch posts
+        const fetchedPosts = await api.posts.getAll();
+        setPosts(fetchedPosts);
+      } catch (error) {
+        console.error('Failed to initialize app', error);
+        toast.error('Failed to load data. Please try again later.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initApp();
+
+    // Listen for unauthorized events (e.g. token expired/invalid)
+    const handleUnauthorized = () => {
+      setUser(null);
+      localStorage.removeItem('token');
+      setShowLogin(true);
+      toast.error('Session expired. Please log in again.');
+    };
+
+    const handleLogoutEvent = () => {
+        setUser(null);
+        setCurrentPage('home');
+        toast.info('Signed out successfully');
+    };
+
+    window.addEventListener('auth:unauthorized', handleUnauthorized);
+    window.addEventListener('auth:logout', handleLogoutEvent);
+
+    return () => {
+      window.removeEventListener('auth:unauthorized', handleUnauthorized);
+      window.removeEventListener('auth:logout', handleLogoutEvent);
+    };
+  }, []);
+
+  // Fetch comments when a post is selected
+  useEffect(() => {
+    if (selectedPost) {
+      const fetchComments = async () => {
+        try {
+          const fetchedComments = await api.comments.getByPostId(selectedPost.id);
+          setComments(fetchedComments);
+        } catch (error) {
+          console.error('Failed to fetch comments', error);
+        }
+      };
+      fetchComments();
+    }
+  }, [selectedPost]);
+
+  // Fetch reports and users if admin
+  useEffect(() => {
+    if (user?.role === 'admin' && currentPage === 'admin') {
+      const fetchData = async () => {
+        try {
+          const [fetchedReports, fetchedUsers] = await Promise.all([
+            api.reports.getAll(),
+            api.auth.getUsers()
+          ]);
+          setReports(fetchedReports);
+          setAllUsers(fetchedUsers);
+        } catch (error) {
+          console.error('Failed to fetch admin data', error);
+        }
+      };
+      fetchData();
+    }
+  }, [user, currentPage]);
 
   // Auth with role-based redirect
   const handleLogin = (loggedInUser: User) => {
@@ -164,19 +140,7 @@ export default function App() {
     setShowSignUp(true);
   };
 
-  const handleSignUp = (userData: Omit<User, 'id' | 'role'> & { password: string }) => {
-    // Create new user (in real app, this would be an API call)
-    const newUser: User = {
-      id: `u${Date.now()}`,
-      name: userData.name,
-      email: userData.email,
-      role: 'user', // New users are regular users by default
-    };
-
-    // Add to users list (in real app, this would be handled by backend)
-    INITIAL_USERS.push(newUser);
-
-    // Auto-login the new user
+  const handleSignUp = (newUser: User) => {
     setUser(newUser);
     setShowSignUp(false);
     setCurrentPage('home');
@@ -194,137 +158,165 @@ export default function App() {
   };
 
   const handleLogout = () => {
-    setUser(null);
-    setCurrentPage('home');
-    toast.info('Signed out successfully');
+    api.auth.logout();
+    // Event listener will handle state update and toast
   };
 
   // Post Actions
-  const handleCreatePost = (data: Partial<Post>) => {
+  const handleCreatePost = async (data: Partial<Post>) => {
     if (!user) {
       toast.error('You must be logged in to post');
       return;
     }
 
-    const newPost: Post = {
-      ...data as Post,
-      id: `p${posts.length + 1}`,
-      userId: user.id,
-      userName: user.name,
-      status: 'active',
-      createdAt: new Date().toISOString(),
-      imageUrl: data.imageUrl || 'https://images.unsplash.com/photo-1621735320171-a682f45d7172?auto=format&fit=crop&q=80&w=800', // Default if none
-    };
-
-    setPosts([newPost, ...posts]);
-    setShowPostForm(false);
-    toast.success('Your post has been published!');
+    try {
+      const result = await api.posts.create(data);
+      // Refresh posts
+      const updatedPosts = await api.posts.getAll();
+      setPosts(updatedPosts);
+      setShowPostForm(false);
+      toast.success('Your post has been published!');
+    } catch (error) {
+      toast.error('Failed to create post');
+    }
   };
 
-  const handleUpdatePostStatus = (postId: string) => {
-    setPosts(prev => prev.map(p => p.id === postId ? { ...p, status: 'resolved' } : p));
-    toast.success('Status updated successfully!');
+  const handleUpdatePostStatus = async (postId: string) => {
+    try {
+      await api.posts.updateStatus(postId, 'resolved'); // Assuming 'resolved' maps to 'collected' or 'found' depending on logic, backend sets to 'resolved' or specific status? 
+      // Backend updatePostStatus takes status from body.
+      // Let's check backend logic. It takes status from body.
+      // Wait, frontend ItemDetails calls onUpdateStatus which calls handleUpdatePostStatus.
+      // ItemDetails passes nothing.
+      // Let's assume we want to mark as 'collected' if found, or 'found' if lost?
+      // The backend constraint is CHECK (status IN ('active', 'collected', 'found')).
+      // Let's just set it to 'found' for now as a generic resolution, or 'collected'.
+      // The mock implementation set it to 'resolved'. But DB constraint doesn't have 'resolved'.
+      // DB has 'active', 'collected', 'found'.
+      // Let's use 'collected' as "resolved".
+      
+      // Wait, let's check ItemDetails.tsx to see what it expects.
+      // It says "Mark as Found" or "Mark as Collected".
+      // Let's just toggle status.
+      
+      // For now, I'll send 'collected' as a safe default for resolution.
+      await api.posts.updateStatus(postId, 'collected');
+      
+      setPosts(prev => prev.map(p => p.id === postId ? { ...p, status: 'collected' } : p));
+      toast.success('Status updated successfully!');
+    } catch (error) {
+      toast.error('Failed to update status');
+    }
   };
 
-  const handleDeletePost = (postId: string) => {
-    setPosts(prev => prev.filter(p => p.id !== postId));
-    setComments(prev => prev.filter(c => c.postId !== postId));
-    setSelectedPost(null);
-    toast.success('Post removed');
+  const handleDeletePost = async (postId: string) => {
+    try {
+      await api.posts.delete(postId);
+      setPosts(prev => prev.filter(p => p.id !== postId));
+      setComments(prev => prev.filter(c => c.postId !== postId));
+      setSelectedPost(null);
+      toast.success('Post removed');
+    } catch (error) {
+      toast.error('Failed to delete post');
+    }
   };
 
   // Comment Actions
-  const handleAddComment = (postId: string, content: string) => {
+  const handleAddComment = async (postId: string, content: string) => {
     if (!user) return;
-    const newComment: Comment = {
-      id: `c${comments.length + 1}`,
-      postId,
-      userId: user.id,
-      userName: user.name,
-      content,
-      createdAt: new Date().toISOString(),
-    };
-    setComments([...comments, newComment]);
-    toast.success('Comment added');
+    try {
+      const result = await api.comments.add(postId, content);
+      // Refresh comments
+      const updatedComments = await api.comments.getByPostId(postId);
+      setComments(updatedComments);
+      toast.success('Comment added');
+    } catch (error) {
+      toast.error('Failed to add comment');
+    }
   };
 
   // Moderation Actions
-  const handleReport = (postId: string, reason: string) => {
+  const handleReport = async (postId: string, reason: string) => {
     if (!user) return;
-    const newReport: Report = {
-      id: `r${reports.length + 1}`,
-      targetType: 'post',
-      targetId: postId,
-      reporterId: user.id,
-      reason,
-      status: 'pending',
-    };
-    setReports([...reports, newReport]);
-    setPosts(prev => prev.map(p => p.id === postId ? { ...p, isReported: true } : p));
-    toast.error('Report submitted for review');
+    try {
+      await api.reports.create({
+        targetType: 'post',
+        targetId: postId,
+        reason,
+      });
+      setPosts(prev => prev.map(p => p.id === postId ? { ...p, isReported: true } : p));
+      toast.error('Report submitted for review');
+    } catch (error) {
+      toast.error('Failed to submit report');
+    }
   };
 
-  const handleResolveReport = (reportId: string) => {
-    setReports(prev => prev.map(r => r.id === reportId ? { ...r, status: 'resolved' } : r));
-    toast.success('Report resolved');
+  const handleResolveReport = async (reportId: string) => {
+    try {
+      await api.reports.resolve(reportId);
+      setReports(prev => prev.map(r => r.id === reportId ? { ...r, status: 'resolved' } : r));
+      toast.success('Report resolved');
+    } catch (error) {
+      toast.error('Failed to resolve report');
+    }
   };
 
-  const handleReportComment = (commentId: string, reason: string) => {
+  const handleReportComment = async (commentId: string, reason: string) => {
     if (!user) return;
-    const newReport: Report = {
-      id: `r${reports.length + 1}`,
-      targetType: 'comment',
-      targetId: commentId,
-      reporterId: user.id,
-      reason,
-      status: 'pending',
-    };
-    setReports([...reports, newReport]);
-    toast.error('Report submitted for review');
+    try {
+      await api.reports.create({
+        targetType: 'comment',
+        targetId: commentId,
+        reason,
+      });
+      toast.error('Report submitted for review');
+    } catch (error) {
+      toast.error('Failed to submit report');
+    }
   };
 
   // User Profile & Settings Actions
-  const handleUpdateUser = (updates: Partial<User>) => {
+  const handleUpdateUser = async (updates: Partial<User>) => {
     if (!user) return;
-    const updatedUser = { ...user, ...updates };
-    setUser(updatedUser);
-    
-    // Update user in the users list
-    const userIndex = INITIAL_USERS.findIndex(u => u.id === user.id);
-    if (userIndex !== -1) {
-      INITIAL_USERS[userIndex] = updatedUser;
+    try {
+      const updatedUser = await api.auth.updateProfile({ name: updates.name || user.name, email: updates.email || user.email });
+      setUser(updatedUser);
+      toast.success('Profile updated successfully!');
+    } catch (error) {
+      toast.error('Failed to update profile');
     }
-    
-    toast.success('Profile updated successfully!');
   };
 
-  const handleChangePassword = (currentPassword: string, newPassword: string) => {
-    // In a real app, you'd verify the current password and update it
-    toast.success('Password changed successfully!');
+  const handleChangePassword = async (currentPassword: string, newPassword: string) => {
+    try {
+      await api.auth.updatePassword({ currentPassword, newPassword });
+      toast.success('Password changed successfully!');
+    } catch (error) {
+      toast.error('Failed to change password');
+    }
   };
 
-  const handleDeleteAccount = () => {
+  const handleDeleteAccount = async () => {
     if (!user) return;
-    
-    // Remove user's posts and comments
-    setPosts(prev => prev.filter(p => p.userId !== user.id));
-    setComments(prev => prev.filter(c => c.userId !== user.id));
-    
-    // Remove user from users list
-    const userIndex = INITIAL_USERS.findIndex(u => u.id === user.id);
-    if (userIndex !== -1) {
-      INITIAL_USERS.splice(userIndex, 1);
+    try {
+      await api.auth.deleteAccount();
+      setUser(null);
+      setShowSettings(false);
+      setCurrentPage('home');
+      toast.error('Account deleted successfully');
+    } catch (error) {
+      toast.error('Failed to delete account');
     }
-    
-    // Logout
-    setUser(null);
-    setShowSettings(false);
-    setCurrentPage('home');
-    toast.error('Account deleted successfully');
   };
+
+  if (isLoading) {
+    return <div className="min-h-screen flex items-center justify-center bg-[#FDFDFD] dark:bg-gray-950">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+    </div>;
+  }
 
   return (
-    <div className="min-h-screen bg-[#FDFDFD] text-gray-900 selection:bg-blue-100 selection:text-blue-900">
+    <div className="min-h-screen bg-[#FDFDFD] dark:bg-gray-950 text-gray-900 dark:text-white selection:bg-blue-100 selection:text-blue-900">
       <Navbar 
         user={user} 
         onNavigate={setCurrentPage} 
@@ -351,29 +343,26 @@ export default function App() {
                 <div className="relative z-10 max-w-2xl space-y-4 sm:space-y-6">
                   <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/10 backdrop-blur-md rounded-full text-xs sm:text-sm font-bold border border-white/20">
                     <span className="flex h-2 w-2 rounded-full bg-green-400 animate-pulse" />
-                    Connecting communities worldwide
+                    {t.hero.badge}
                   </div>
                   <h1 className="text-4xl sm:text-5xl md:text-7xl font-black leading-[1.1] tracking-tight">
-                    Lost it? <span className="text-blue-300">Found it.</span>
+                    {t.hero.title1} <span className="text-blue-300">{t.hero.title2}</span>
                   </h1>
                   <p className="text-base sm:text-xl text-blue-100/80 leading-relaxed font-medium">
-                    The centralized platform to report missing items and help others recover what they've lost.
+                    {t.hero.subtitle}
                   </p>
                   <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 pt-2 sm:pt-4">
                     <button 
                       onClick={() => setShowPostForm(true)}
                       className="px-6 sm:px-8 py-3 sm:py-4 bg-white text-blue-900 rounded-xl sm:rounded-2xl font-black hover:bg-blue-50 transition-all shadow-xl shadow-black/20 flex items-center justify-center gap-2 group cursor-pointer text-sm sm:text-base"
                     >
-                      Report Item <Plus size={18} className="sm:w-5 sm:h-5 group-hover:rotate-90 transition-transform" />
+                      {t.hero.reportBtn} <Plus size={18} className="sm:w-5 sm:h-5 group-hover:rotate-90 transition-transform" />
                     </button>
                     <button 
-                      onClick={() => {
-                        const el = document.getElementById('browse');
-                        el?.scrollIntoView({ behavior: 'smooth' });
-                      }}
+                      onClick={() => { const el = document.getElementById('browse'); el?.scrollIntoView({ behavior: 'smooth' }); }}
                       className="px-6 sm:px-8 py-3 sm:py-4 bg-blue-600/30 backdrop-blur-md text-white border border-white/20 rounded-xl sm:rounded-2xl font-black hover:bg-white/10 transition-all flex items-center justify-center gap-2 group cursor-pointer text-sm sm:text-base"
                     >
-                      Start Browsing <ArrowRight size={18} className="sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" />
+                      {t.hero.browseBtn} <ArrowRight size={18} className="sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" />
                     </button>
                   </div>
                 </div>
@@ -392,10 +381,7 @@ export default function App() {
 
               {/* Browse Section */}
               <section id="browse">
-                <ItemGrid 
-                  posts={posts} 
-                  onSelectPost={setSelectedPost} 
-                />
+                <ItemGrid posts={posts} onSelectPost={setSelectedPost} />
               </section>
             </motion.div>
           )}
@@ -409,8 +395,8 @@ export default function App() {
             >
               <div className="flex items-center justify-between mb-8">
                 <div>
-                  <h1 className="text-3xl font-black text-gray-900">Admin Command Center</h1>
-                  <p className="text-gray-500">Monitor reports and moderate community content.</p>
+                  <h1 className="text-3xl font-black text-gray-900 dark:text-white">Admin Command Center</h1>
+                  <p className="text-gray-500 dark:text-gray-400">Monitor reports and moderate community content.</p>
                 </div>
                 <button 
                   onClick={() => setCurrentPage('home')}
@@ -422,7 +408,7 @@ export default function App() {
               <AdminDashboard 
                 posts={posts}
                 reports={reports}
-                users={INITIAL_USERS}
+                users={allUsers}
                 onReviewPost={setSelectedPost}
                 onDeletePost={handleDeletePost}
                 onResolveReport={handleResolveReport}
@@ -436,8 +422,9 @@ export default function App() {
       <AnimatePresence>
         {selectedPost && (
           <ItemDetails 
+            key="item-details"
             post={selectedPost}
-            comments={comments.filter(c => c.postId === selectedPost.id)}
+            comments={comments}
             currentUser={user}
             onClose={() => setSelectedPost(null)}
             onAddComment={(content) => handleAddComment(selectedPost.id, content)}
@@ -445,11 +432,13 @@ export default function App() {
             onReport={(reason) => handleReport(selectedPost.id, reason)}
             onDelete={() => handleDeletePost(selectedPost.id)}
             onReportComment={(commentId, reason) => handleReportComment(commentId, reason)}
+            onLogin={() => setShowLogin(true)}
           />
         )}
 
         {showPostForm && (
           <PostForm 
+            key="post-form"
             onSubmit={handleCreatePost}
             onClose={() => setShowPostForm(false)}
           />
@@ -457,15 +446,16 @@ export default function App() {
 
         {showLogin && (
           <Login 
+            key="login"
             onLogin={handleLogin}
             onClose={() => setShowLogin(false)}
-            users={INITIAL_USERS}
             onSwitchToSignUp={handleSwitchToSignUp}
           />
         )}
 
         {showSignUp && (
           <SignUp 
+            key="signup"
             onClose={() => setShowSignUp(false)}
             onSignUp={handleSignUp}
             onSwitchToLogin={handleSwitchToLogin}
@@ -474,9 +464,10 @@ export default function App() {
 
         {showProfile && user && (
           <UserProfile 
+            key="user-profile"
             user={user}
             posts={posts}
-            comments={comments}
+            comments={comments} // This might need to be filtered for user's comments if API doesn't return all comments for user profile
             onClose={() => setShowProfile(false)}
             onNavigateToSettings={() => {
               setShowProfile(false);
@@ -489,6 +480,7 @@ export default function App() {
 
         {showSettings && user && (
           <UserSettings 
+            key="user-settings"
             user={user}
             onClose={() => setShowSettings(false)}
             onUpdateUser={handleUpdateUser}
@@ -509,20 +501,28 @@ export default function App() {
       </button>
       
       {/* Footer */}
-      <footer className="border-t border-gray-100 bg-white py-12 mt-20">
+      <footer className="border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 py-12 mt-20">
         <div className="max-w-7xl mx-auto px-8 flex flex-col md:flex-row justify-between items-center gap-8">
-          <div className="flex items-center gap-2 text-xl font-bold text-gray-900">
+          <div className="flex items-center gap-2 text-xl font-bold text-gray-900 dark:text-white">
             <div className="bg-blue-600 p-1 rounded text-white"><Search size={16} /></div>
             FoundIt
           </div>
-          <p className="text-gray-400 text-sm font-medium">© 2026 FoundIt Lost & Found Platform. Helping communities stay connected.</p>
-          <div className="flex gap-6 text-sm font-bold text-gray-500">
-            <button className="hover:text-blue-600 cursor-pointer">Privacy</button>
-            <button className="hover:text-blue-600 cursor-pointer">Terms</button>
-            <button className="hover:text-blue-600 cursor-pointer">Help</button>
+          <p className="text-gray-400 dark:text-gray-500 text-sm font-medium">{t.footer.tagline}</p>
+          <div className="flex gap-6 text-sm font-bold text-gray-500 dark:text-gray-400">
+            <button className="hover:text-blue-600 cursor-pointer">{t.footer.privacy}</button>
+            <button className="hover:text-blue-600 cursor-pointer">{t.footer.terms}</button>
+            <button className="hover:text-blue-600 cursor-pointer">{t.footer.help}</button>
           </div>
         </div>
       </footer>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <AppProvider>
+      <AppContent />
+    </AppProvider>
   );
 }

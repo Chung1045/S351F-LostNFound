@@ -1,7 +1,7 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'motion/react';
-import { AlertTriangle, X } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 
 interface ConfirmDialogProps {
   title: string;
@@ -40,7 +40,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   const styles = variantStyles[variant];
 
   return createPortal(
-    <div 
+    <div
       className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
       onClick={onCancel}
     >
@@ -50,27 +50,24 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         exit={{ opacity: 0, scale: 0.9 }}
         transition={{ type: 'spring', duration: 0.3 }}
         onClick={(e) => e.stopPropagation()}
-        className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden"
+        className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden"
       >
         <div className="p-6">
-          {/* Icon */}
           <div className="flex justify-center mb-4">
             <div className={`w-16 h-16 rounded-full ${styles.icon} flex items-center justify-center`}>
               <AlertTriangle size={32} />
             </div>
           </div>
 
-          {/* Content */}
           <div className="text-center mb-6">
-            <h2 className="text-xl sm:text-2xl font-black text-gray-900 mb-2">{title}</h2>
-            <p className="text-sm sm:text-base text-gray-600">{message}</p>
+            <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white mb-2">{title}</h2>
+            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">{message}</p>
           </div>
 
-          {/* Actions */}
           <div className="flex flex-col sm:flex-row gap-3">
             <button
               onClick={onCancel}
-              className="flex-1 px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-bold transition-all cursor-pointer"
+              className="flex-1 px-4 py-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl font-bold transition-all cursor-pointer"
             >
               {cancelText}
             </button>

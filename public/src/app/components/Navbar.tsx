@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, PlusCircle, User, LogOut, ShieldCheck, MapPin, Settings, UserCircle } from 'lucide-react';
+import { Search, PlusCircle, User, LogOut, ShieldCheck, Settings, UserCircle, Moon, Sun, Languages } from 'lucide-react';
 import { User as UserType } from '../types';
 import { ConfirmDialog } from './ConfirmDialog';
+import { useApp } from '../contexts/AppContext';
 
 interface NavbarProps {
   user: UserType | null;
@@ -15,12 +16,12 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ user, onNavigate, onLogout, onAuth, onCreatePost, onShowProfile, onShowSettings, currentPage }) => {
+  const { t, theme, toggleTheme, language, setLanguage } = useApp();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const desktopMenuRef = useRef<HTMLDivElement>(null);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
 
-  // Close menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
@@ -30,16 +31,15 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onNavigate, onLogout, onAu
         setShowUserMenu(false);
       }
     };
-
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   return (
-    <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100 px-3 py-2 sm:px-4 sm:py-3 md:px-8">
+    <nav className="sticky top-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 px-3 py-2 sm:px-4 sm:py-3 md:px-8">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         {/* Logo */}
-        <button 
+        <button
           onClick={() => onNavigate('home')}
           className="flex items-center gap-1.5 sm:gap-2 text-lg sm:text-2xl font-bold bg-linear-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent cursor-pointer"
         >
@@ -51,90 +51,98 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onNavigate, onLogout, onAu
         </button>
 
         {/* Desktop Links */}
-        <div className="hidden md:flex items-center gap-6">
-          <button 
+        <div className="hidden md:flex items-center gap-4">
+          <button
             onClick={() => onNavigate('home')}
-            className={`text-sm font-medium transition-colors cursor-pointer ${currentPage === 'home' ? 'text-blue-600' : 'text-gray-600 hover:text-blue-600'}`}
+            className={`text-sm font-medium transition-colors cursor-pointer ${currentPage === 'home' ? 'text-blue-600' : 'text-gray-600 dark:text-gray-300 hover:text-blue-600'}`}
           >
-            Explore
+            {t.nav.explore}
           </button>
-          <button 
+          <button
             onClick={onCreatePost}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-full text-sm font-semibold hover:bg-blue-700 transition-all shadow-sm hover:shadow-md cursor-pointer"
           >
             <PlusCircle size={16} />
-            Post Item
+            {t.nav.postItem}
           </button>
-          
-          <div className="h-6 w-px bg-gray-200" />
+
+          <div className="h-6 w-px bg-gray-200 dark:bg-gray-700" />
+
+          {/* Theme Toggle */}
+          <button
+            onClick={toggleTheme}
+            className="p-2 rounded-xl text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+            title={theme === 'dark' ? t.ui.lightMode : t.ui.darkMode}
+          >
+            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+          </button>
+
+          {/* Language Toggle */}
+          <button
+            onClick={() => setLanguage(language === 'en' ? 'zh-TW' : 'en')}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 transition-colors cursor-pointer"
+          >
+            <Languages size={14} />
+            {language === 'en' ? '中文' : 'EN'}
+          </button>
 
           {user ? (
             <div className="flex items-center gap-4">
               {user.role === 'admin' && (
-                <button 
+                <button
                   onClick={() => onNavigate('admin')}
-                  className={`flex items-center gap-1.5 text-sm font-medium transition-colors cursor-pointer ${currentPage === 'admin' ? 'text-purple-600' : 'text-gray-600 hover:text-purple-600'}`}
+                  className={`flex items-center gap-1.5 text-sm font-medium transition-colors cursor-pointer ${currentPage === 'admin' ? 'text-purple-600' : 'text-gray-600 dark:text-gray-300 hover:text-purple-600'}`}
                 >
                   <ShieldCheck size={18} />
-                  Admin
+                  {t.nav.admin}
                 </button>
               )}
-              
+
               {/* User Menu Dropdown */}
               <div className="relative" ref={desktopMenuRef}>
                 <button
                   onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="flex items-center gap-2 hover:bg-gray-50 rounded-xl p-2 transition-colors cursor-pointer"
+                  className="flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl p-2 transition-colors cursor-pointer"
                 >
                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white">
                     <User size={18} />
                   </div>
                   <div className="flex flex-col text-left">
-                    <span className="text-sm font-semibold text-gray-900 leading-tight">{user.name}</span>
-                    <span className="text-[10px] text-gray-500">{user.email}</span>
+                    <span className="text-sm font-semibold text-gray-900 dark:text-white leading-tight">{user.name}</span>
+                    <span className="text-[10px] text-gray-500 dark:text-gray-400">{user.email}</span>
                   </div>
                 </button>
 
-                {/* Dropdown Menu */}
                 {showUserMenu && (
-                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50">
-                    <div className="px-4 py-3 border-b border-gray-100">
-                      <p className="text-xs font-bold text-gray-500 uppercase">Account</p>
-                      <p className="text-sm font-bold text-gray-900 mt-1">{user.name}</p>
+                  <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 py-2 z-50">
+                    <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
+                      <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">{t.nav.account}</p>
+                      <p className="text-sm font-bold text-gray-900 dark:text-white mt-1">{user.name}</p>
                     </div>
-                    
+
                     <button
-                      onClick={() => {
-                        onShowProfile();
-                        setShowUserMenu(false);
-                      }}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors text-left cursor-pointer"
+                      onClick={() => { onShowProfile(); setShowUserMenu(false); }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-gray-700 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-600 transition-colors text-left cursor-pointer"
                     >
                       <UserCircle size={18} />
-                      View Profile
+                      {t.nav.viewProfile}
                     </button>
-                    
+
                     <button
-                      onClick={() => {
-                        onShowSettings();
-                        setShowUserMenu(false);
-                      }}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors text-left cursor-pointer"
+                      onClick={() => { onShowSettings(); setShowUserMenu(false); }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-gray-700 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-600 transition-colors text-left cursor-pointer"
                     >
                       <Settings size={18} />
-                      Settings
+                      {t.nav.settings}
                     </button>
-                    
-                    <div className="border-t border-gray-100 mt-2 pt-2">
+
+                    <div className="border-t border-gray-100 dark:border-gray-700 mt-2 pt-2">
                       <button
-                        onClick={() => {
-                          setShowLogoutConfirm(true);
-                          setShowUserMenu(false);
-                        }}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-red-600 hover:bg-red-50 transition-colors text-left cursor-pointer"
+                        onClick={() => { setShowLogoutConfirm(true); setShowUserMenu(false); }}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-left cursor-pointer"
                       >
                         <LogOut size={18} />
-                        Sign Out
+                        {t.nav.signOut}
                       </button>
                     </div>
                   </div>
@@ -142,30 +150,46 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onNavigate, onLogout, onAu
               </div>
             </div>
           ) : (
-            <button 
+            <button
               onClick={onAuth}
-              className="text-sm font-semibold text-gray-900 hover:text-blue-600 cursor-pointer"
+              className="text-sm font-semibold text-gray-900 dark:text-white hover:text-blue-600 cursor-pointer"
             >
-              Log In
+              {t.nav.logIn}
             </button>
           )}
         </div>
 
-        {/* Mobile menu button */}
+        {/* Mobile menu */}
         <div className="md:hidden flex items-center gap-2">
-           <button 
+          {/* Theme Toggle Mobile */}
+          <button
+            onClick={toggleTheme}
+            className="p-2 rounded-xl text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+          >
+            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+          </button>
+
+          {/* Language Toggle Mobile */}
+          <button
+            onClick={() => setLanguage(language === 'en' ? 'zh-TW' : 'en')}
+            className="px-2 py-1 rounded-lg text-xs font-bold text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+          >
+            {language === 'en' ? '中' : 'EN'}
+          </button>
+
+          <button
             onClick={onCreatePost}
             className="p-2 bg-blue-600 text-white rounded-full cursor-pointer"
           >
             <PlusCircle size={20} />
           </button>
-          
+
           {!user && (
-            <button onClick={onAuth} className="p-2 text-gray-600 cursor-pointer">
+            <button onClick={onAuth} className="p-2 text-gray-600 dark:text-gray-300 cursor-pointer">
               <User size={20} />
             </button>
           )}
-          
+
           {user && (
             <div className="relative" ref={mobileMenuRef}>
               <button
@@ -175,57 +199,47 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onNavigate, onLogout, onAu
                 <User size={18} />
               </button>
 
-              {/* Mobile Dropdown Menu */}
               {showUserMenu && (
-                <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50">
-                  <div className="px-4 py-3 border-b border-gray-100">
-                    <p className="text-xs font-bold text-gray-500 uppercase">Account</p>
-                    <p className="text-sm font-bold text-gray-900 mt-1">{user.name}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">{user.email}</p>
+                <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 py-2 z-50">
+                  <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
+                    <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">{t.nav.account}</p>
+                    <p className="text-sm font-bold text-gray-900 dark:text-white mt-1">{user.name}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{user.email}</p>
                   </div>
-                  
+
                   {user.role === 'admin' && (
                     <button
-                      onClick={() => {
-                        onNavigate('admin');
-                        setShowUserMenu(false);
-                      }}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-purple-700 hover:bg-purple-50 transition-colors text-left cursor-pointer"
+                      onClick={() => { onNavigate('admin'); setShowUserMenu(false); }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-purple-700 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-gray-700 transition-colors text-left cursor-pointer"
                     >
                       <ShieldCheck size={18} />
-                      Admin Dashboard
+                      {t.nav.admin}
                     </button>
                   )}
-                  
+
                   <button
-                    onClick={() => {
-                      onShowProfile();
-                      setShowUserMenu(false);
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors text-left cursor-pointer"
+                    onClick={() => { onShowProfile(); setShowUserMenu(false); }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-gray-700 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-600 transition-colors text-left cursor-pointer"
                   >
                     <UserCircle size={18} />
-                    View Profile
+                    {t.nav.viewProfile}
                   </button>
-                  
+
                   <button
-                    onClick={() => {
-                      onShowSettings();
-                      setShowUserMenu(false);
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors text-left cursor-pointer"
+                    onClick={() => { onShowSettings(); setShowUserMenu(false); }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-gray-700 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-600 transition-colors text-left cursor-pointer"
                   >
                     <Settings size={18} />
-                    Settings
+                    {t.nav.settings}
                   </button>
-                  
-                  <div className="border-t border-gray-100 mt-2 pt-2">
+
+                  <div className="border-t border-gray-100 dark:border-gray-700 mt-2 pt-2">
                     <button
-                      onClick={() => setShowLogoutConfirm(true)}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-red-600 hover:bg-red-50 transition-colors text-left cursor-pointer"
+                      onClick={() => { setShowLogoutConfirm(true); setShowUserMenu(false); }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-left cursor-pointer"
                     >
                       <LogOut size={18} />
-                      Sign Out
+                      {t.nav.signOut}
                     </button>
                   </div>
                 </div>
@@ -234,18 +248,15 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onNavigate, onLogout, onAu
           )}
         </div>
       </div>
-      {/* Logout Confirmation Dialog */}
+
       {showLogoutConfirm && (
         <ConfirmDialog
-          title="Sign Out"
-          message="Are you sure you want to sign out of your account?"
-          confirmText="Sign Out"
-          cancelText="Stay Logged In"
+          title={t.nav.signOutTitle}
+          message={t.nav.signOutMessage}
+          confirmText={t.nav.signOut}
+          cancelText={t.nav.stayLoggedIn}
           variant="warning"
-          onConfirm={() => {
-            onLogout();
-            setShowLogoutConfirm(false);
-          }}
+          onConfirm={() => { onLogout(); setShowLogoutConfirm(false); }}
           onCancel={() => setShowLogoutConfirm(false)}
         />
       )}
