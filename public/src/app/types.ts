@@ -1,4 +1,4 @@
-export type ItemType = 'lost' | 'found';
+export type ItemType = 'Lost' | 'Found';
 
 export type Category = 'Electronics' | 'Clothing' | 'Documents' | 'Keys' | 'Wallets' | 'Pets' | 'Other';
 
@@ -22,7 +22,7 @@ export interface Post {
   time: string;
   contactInfo: string;
   imageUrl: string;
-  status: 'active' | 'resolved';
+  status: 'active' | 'collected' | 'found';
   userId: string;
   userName: string;
   createdAt: string;

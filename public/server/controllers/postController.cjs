@@ -12,7 +12,7 @@ const getPosts = (req, res) => {
             ORDER BY p.created_at DESC
         `);
         const posts = stmt.all();
-        
+
         // Map database fields to frontend model
         const formattedPosts = posts.map(p => ({
             id: p.id,
@@ -39,32 +39,75 @@ const getPosts = (req, res) => {
     }
 };
 
+// const createPost = (req, res) => {
+//     try {
+//         const { type, title, category, description, location, date, time, contactInfo, imageUrl } = req.body;
+//         const id = uuidv4();
+//         const userId = req.user.id;
+//         const itemDatetime = `${date}T${time}:00Z`;
+//
+//         const stmt = db.prepare(`
+//             INSERT INTO posts (id, user_id, type, category, title, description, location, item_datetime, contact_info, status)
+//             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')
+//         `);
+//
+//         // Ensure type is capitalized for DB check constraint ('Lost', 'Found')
+//         const dbType = type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
+//
+//         stmt.run(id, userId, dbType, category, title, description, location, itemDatetime, contactInfo);
+//
+//         if (imageUrl) {
+//             const imgStmt = db.prepare(`INSERT INTO post_images (id, post_id, image_url) VALUES (?, ?, ?)`);
+//             imgStmt.run(uuidv4(), id, imageUrl);
+//         }
+//
+//         res.status(201).json({ message: 'Post created successfully', id });
+//     } catch (error) {
+//         console.error(error);
+//         res.status(500).json({ error: 'Internal server error' });
+//     }
+// };
+
+// @route   POST /api/posts
+// @desc    Create Post (Security Fix: user_id from Token)
 const createPost = (req, res) => {
+    const user_id = req.user.id;
+    const { type, title, category, description, location, date, time, contactInfo, imageUrl } = req.body;
+    const itemDatetime = `${date}T${time}:00Z`;
+
+    console.log("Received data:", { user_id, type, title, category, description, location, date, time, contactInfo, imageUrl });
+
+    if (!type || !title) {
+        return res.status(400).json({ error: "missing required fields" });
+    }
+
     try {
-        const { type, title, category, description, location, date, time, contactInfo, imageUrl } = req.body;
-        const id = uuidv4();
-        const userId = req.user.id;
-        const itemDatetime = `${date}T${time}:00Z`;
+        // Use Transaction to handle posts and images linkage
+        const executeTransaction = db.transaction(() => {
+            const postId = uuidv4();
 
-        const stmt = db.prepare(`
-            INSERT INTO posts (id, user_id, type, category, title, description, location, item_datetime, contact_info, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')
-        `);
-        
-        // Ensure type is capitalized for DB check constraint ('Lost', 'Found')
-        const dbType = type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
+            // 1. Insert into posts
+            const stmt = db.prepare(`
+                INSERT INTO posts (id, user_id, type, category, title, description, location, item_datetime, contact_info)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `);
+            stmt.run(postId, user_id, type, category, title, description, location, itemDatetime, contactInfo);
 
-        stmt.run(id, userId, dbType, category, title, description, location, itemDatetime, contactInfo);
+            // 2. Insert into post_images if image_url exists (Method A)
+            if (imageUrl) {
+                db.prepare(`INSERT INTO post_images (id, post_id, image_url) VALUES (?, ?, ?)`)
+                    .run(uuidv4(), postId, imageUrl);
+            }
 
-        if (imageUrl) {
-            const imgStmt = db.prepare(`INSERT INTO post_images (id, post_id, image_url) VALUES (?, ?, ?)`);
-            imgStmt.run(uuidv4(), id, imageUrl);
-        }
+            return postId;
+        });
 
-        res.status(201).json({ message: 'Post created successfully', id });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Internal server error' });
+        const id = executeTransaction();
+        res.status(201).json({ message: "Post created successfully", postId: id });
+
+    } catch (err) {
+        console.error("Error creating post:", err);
+        res.status(400).json({ error: err.message });
     }
 };
 

@@ -20,13 +20,13 @@ interface ItemDetailsProps {
   onLogin?: () => void;
 }
 
-export const ItemDetails: React.FC<ItemDetailsProps> = ({ 
-  post, 
-  comments, 
-  currentUser, 
-  onClose, 
-  onAddComment, 
-  onUpdateStatus, 
+export const ItemDetails: React.FC<ItemDetailsProps> = ({
+  post,
+  comments,
+  currentUser,
+  onClose,
+  onAddComment,
+  onUpdateStatus,
   onReport,
   onDelete,
   onReportComment,
@@ -38,10 +38,10 @@ export const ItemDetails: React.FC<ItemDetailsProps> = ({
   const [reportReason, setReportReason] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showResolveConfirm, setShowResolveConfirm] = useState(false);
-  
+
   const isOwner = currentUser?.id === post.userId;
   const isAdmin = currentUser?.role === 'admin';
-  const isLost = post.type === 'lost';
+  const isLost = post.type === 'Lost';
 
   const handleSubmitComment = (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,7 +53,7 @@ export const ItemDetails: React.FC<ItemDetailsProps> = ({
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-0 md:p-6 bg-black/60 backdrop-blur-sm">
       <div className="bg-white dark:bg-gray-800 w-full max-w-5xl md:rounded-3xl shadow-2xl flex flex-col md:flex-row h-full md:h-auto md:max-h-[90vh] overflow-hidden animate-in fade-in slide-in-from-bottom-10 duration-300">
-        
+
         {/* MOBILE LAYOUT */}
         <div className="md:hidden flex flex-col h-full overflow-y-auto">
           {/* Mobile Header */}
