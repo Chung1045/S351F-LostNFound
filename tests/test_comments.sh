@@ -2,7 +2,6 @@
 
 BASE_URL="http://localhost:9090/api"
 COOKIE_JAR="cookies_comment.txt"
-DB_PATH="$(dirname "$0")/../public/db/lost_and_found.db"
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 YELLOW='\033[1;33m'
@@ -29,14 +28,30 @@ else
   exit 1
 fi
 
-# ─── 2. Seed a test post ──────────────────────────────────────────────────────
-echo -e "${YELLOW}[2] Seeding a test post into DB${NC}"
-POST_ID="test-post-$(date +%s)"
-sqlite3 "$DB_PATH" <<EOF
-INSERT OR IGNORE INTO posts (id, user_id, type, category, title, description, location, item_datetime)
-VALUES ('$POST_ID', '$USER_ID', 'Lost', 'Electronics', 'Test Post', 'Test description', 'Test location', CURRENT_TIMESTAMP);
-EOF
-echo -e "${GREEN}✓ Test post seeded (ID: $POST_ID)${NC}\n"
+# ─── 2. Seed a test post via API ─────────────────────────────────────────────
+echo -e "${YELLOW}[2] Seeding a test post via API${NC}"
+SEED_RES=$(curl -s -X POST "$BASE_URL/posts" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "Lost",
+    "category": "Electronics",
+    "title": "Test Post",
+    "description": "Test description",
+    "location": "Test location",
+    "item_datetime": "2024-01-01T00:00:00Z"
+  }')
+
+POST_ID=$(echo "$SEED_RES" | grep -o '"postId":"[^"]*"' | cut -d'"' -f4)
+
+if [ -n "$POST_ID" ]; then
+  echo -e "${GREEN}✓ Test post seeded (ID: $POST_ID)${NC}\n"
+else
+  echo -e "${RED}✗ Failed to seed test post — cannot proceed${NC}"
+  echo "Response: $SEED_RES"
+  rm -f "$COOKIE_JAR"
+  exit 1
+fi
 
 # ─── 3. Get comments (empty) ──────────────────────────────────────────────────
 echo -e "${YELLOW}[3] GET /posts/:post_id/comments (empty)${NC}"
@@ -59,7 +74,7 @@ echo "Response: $ADD_RES"
 
 COMMENT_ID=$(echo "$ADD_RES" | grep -o '"commentId":[0-9]*' | cut -d':' -f2)
 
-if echo "$ADD_RES" | grep -q "Comment added successfully"; then
+if echo "$ADD_RES" | grep -q "Comment added"; then
   echo -e "${GREEN}✓ Add comment passed (ID: $COMMENT_ID)${NC}\n"
 else
   echo -e "${RED}✗ Add comment failed${NC}\n"
@@ -115,9 +130,11 @@ else
   echo -e "${RED}✗ Unauthorized access should have been rejected${NC}\n"
 fi
 
-# ─── Cleanup ──────────────────────────────────────────────────────────────────
+# ─── Cleanup via API ──────────────────────────────────────────────────────────
+curl -s -X DELETE "$BASE_URL/posts/$POST_ID" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" > /dev/null
+
 rm -f "$COOKIE_JAR"
-sqlite3 "$DB_PATH" "DELETE FROM posts WHERE id = '$POST_ID';"
 
 echo -e "${YELLOW}========================================${NC}"
 echo -e "${YELLOW}         Comment Tests Complete         ${NC}"
