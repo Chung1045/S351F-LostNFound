@@ -3,28 +3,60 @@ const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const db = require('../../db/database.cjs');
 
+// // Register
+// const register = async (req, res) => {
+//     try {
+//         const { username, email, password } = req.body;
+//         if (!username || !email || !password) {
+//             return res.status(400).json({ error: 'All fields are required' });
+//         }
+//
+//         const hashedPassword = await argon2.hash(password);
+//         const id = uuidv4();
+//
+//         const stmt = db.prepare('INSERT INTO users (id, username, email, password, role) VALUES (?, ?, ?, ?, ?)');
+//         stmt.run(id, username, email, hashedPassword, 'user');
+//
+//         const token = jwt.sign({ id, username, role: 'user' }, process.env.JWT_SECRET || 'your-secret-key', { expiresIn: '24h' });
+//         res.status(201).json({ user: { id, name: username, email, role: 'user' }, token });
+//     } catch (error) {
+//         if (error.message.includes('UNIQUE constraint failed')) {
+//             return res.status(400).json({ error: 'Username or email already exists' });
+//         }
+//         console.error(error);
+//         res.status(500).json({ error: 'Internal server error' });
+//     }
+// }
+
 // Register
 const register = async (req, res) => {
+    const { username, email, password } = req.body;
+
+    if (!username || !email || !password) {
+        return res.status(400).json({ message: 'Username, email and password are required' });
+    }
+
     try {
-        const { username, email, password } = req.body;
-        if (!username || !email || !password) {
-            return res.status(400).json({ error: 'All fields are required' });
+        const existingUser = db.prepare('SELECT id FROM users WHERE email = ? OR username = ?').get(email, username);
+        if (existingUser) {
+            return res.status(409).json({ message: 'Username or email already exists' });
         }
 
         const hashedPassword = await argon2.hash(password);
         const id = uuidv4();
 
-        const stmt = db.prepare('INSERT INTO users (id, username, email, password, role) VALUES (?, ?, ?, ?, ?)');
-        stmt.run(id, username, email, hashedPassword, 'user');
+        db.prepare(`
+            INSERT INTO users (id, username, email, password)
+            VALUES (?, ?, ?, ?)
+        `).run(id, username, email, hashedPassword);
 
         const token = jwt.sign({ id, username, role: 'user' }, process.env.JWT_SECRET || 'your-secret-key', { expiresIn: '24h' });
-        res.status(201).json({ user: { id, name: username, email, role: 'user' }, token });
-    } catch (error) {
-        if (error.message.includes('UNIQUE constraint failed')) {
-            return res.status(400).json({ error: 'Username or email already exists' });
-        }
-        console.error(error);
-        res.status(500).json({ error: 'Internal server error' });
+        return res.status(201).json({ user: { id, name: username, email, role: 'user' }, token });
+        // return res.status(201).json({ message: 'Account created successfully' });
+
+    } catch (err) {
+        console.error('Register error:', err);
+        return res.status(500).json({ message: 'Internal server error' });
     }
 }
 
@@ -85,7 +117,7 @@ const getProfile = (req, res) => {
     try {
         const stmt = db.prepare('SELECT id, username as name, email, role FROM users WHERE id = ?');
         const user = stmt.get(req.user.id);
-        
+
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
         }
