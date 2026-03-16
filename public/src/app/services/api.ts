@@ -154,4 +154,49 @@ export const api = {
       return handleResponse(response);
     },
   },
+  notifications: {
+    getAll: async () => {
+      const response = await fetch(`${API_BASE_URL}/notifications`, {
+        headers: getAuthHeaders(),
+      });
+      return handleResponse(response);
+    },
+    markAsRead: async (id: string) => {
+      const response = await fetch(`${API_BASE_URL}/notifications/${id}/read`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+      });
+      return handleResponse(response);
+    },
+    markAllAsRead: async () => {
+      const response = await fetch(`${API_BASE_URL}/notifications/read-all`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+      });
+      return handleResponse(response);
+    },
+  },
+  admin: {
+    getReports: async () => {
+      const response = await fetch(`${API_BASE_URL}/admin/reports`, {
+        headers: getAuthHeaders(),
+      });
+      return handleResponse(response);
+    },
+    updateReportStatus: async (id: string, status: string) => {
+      const response = await fetch(`${API_BASE_URL}/admin/reports/${id}`, {
+        method: 'PUT',
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
+      return handleResponse(response);
+    },
+    deleteUser: async (id: string) => {
+      const response = await fetch(`${API_BASE_URL}/admin/users/${id}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      });
+      return handleResponse(response);
+    },
+  },
 };

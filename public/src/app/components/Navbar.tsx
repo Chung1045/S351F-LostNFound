@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, PlusCircle, User, LogOut, ShieldCheck, Settings, UserCircle, Moon, Sun, Languages } from 'lucide-react';
-import { User as UserType } from '../types';
+import { Search, PlusCircle, User, LogOut, ShieldCheck, Settings, UserCircle, Moon, Sun, Languages, Bell } from 'lucide-react';
+import { User as UserType, Notification } from '../types';
 import { ConfirmDialog } from './ConfirmDialog';
+import { NotificationList } from './NotificationList';
 import { useApp } from '../contexts/AppContext';
 
 interface NavbarProps {
@@ -13,22 +14,40 @@ interface NavbarProps {
   onShowProfile: () => void;
   onShowSettings: () => void;
   currentPage: string;
+  notifications?: Notification[];
+  onMarkAsRead?: (id: string) => void;
+  onMarkAllAsRead?: () => void;
+  onNotificationClick?: (notification: Notification) => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ user, onNavigate, onLogout, onAuth, onCreatePost, onShowProfile, onShowSettings, currentPage }) => {
+export const Navbar: React.FC<NavbarProps> = ({ 
+  user, onNavigate, onLogout, onAuth, onCreatePost, onShowProfile, onShowSettings, currentPage,
+  notifications = [], onMarkAsRead = () => {}, onMarkAllAsRead = () => {}, onNotificationClick = () => {}
+}) => {
   const { t, theme, toggleTheme, language, setLanguage } = useApp();
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const desktopMenuRef = useRef<HTMLDivElement>(null);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
+  const desktopNotificationRef = useRef<HTMLDivElement>(null);
+  const mobileNotificationRef = useRef<HTMLDivElement>(null);
+
+  const unreadCount = notifications.filter(n => !n.is_read).length;
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
       const insideDesktop = desktopMenuRef.current?.contains(target);
       const insideMobile = mobileMenuRef.current?.contains(target);
+      const insideDesktopNotifications = desktopNotificationRef.current?.contains(target);
+      const insideMobileNotifications = mobileNotificationRef.current?.contains(target);
+      
       if (!insideDesktop && !insideMobile) {
         setShowUserMenu(false);
+      }
+      if (!insideDesktopNotifications && !insideMobileNotifications) {
+        setShowNotifications(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -88,6 +107,35 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onNavigate, onLogout, onAu
 
           {user ? (
             <div className="flex items-center gap-4">
+              {/* Notification Bell */}
+              <div className="relative" ref={desktopNotificationRef}>
+                <button
+                  onClick={() => setShowNotifications(!showNotifications)}
+                  className="p-2 rounded-xl text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer relative"
+                  title={t.notifications?.title || 'Notifications'}
+                >
+                  <Bell size={20} />
+                  {unreadCount > 0 && (
+                    <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white dark:border-gray-900">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </button>
+
+                {showNotifications && (
+                  <NotificationList
+                    notifications={notifications}
+                    onMarkAsRead={onMarkAsRead}
+                    onMarkAllAsRead={onMarkAllAsRead}
+                    onNotificationClick={(n) => {
+                      onNotificationClick(n);
+                      setShowNotifications(false);
+                    }}
+                    onClose={() => setShowNotifications(false)}
+                  />
+                )}
+              </div>
+
               {user.role === 'admin' && (
                 <button
                   onClick={() => onNavigate('admin')}
@@ -191,7 +239,36 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onNavigate, onLogout, onAu
           )}
 
           {user && (
-            <div className="relative" ref={mobileMenuRef}>
+            <div className="flex items-center gap-2">
+              {/* Notification Bell Mobile */}
+              <div className="relative" ref={mobileNotificationRef}>
+                <button
+                  onClick={() => setShowNotifications(!showNotifications)}
+                  className="p-2 text-gray-600 dark:text-gray-300 cursor-pointer relative"
+                >
+                  <Bell size={20} />
+                  {unreadCount > 0 && (
+                    <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white dark:border-gray-900">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </button>
+
+                {showNotifications && (
+                  <NotificationList
+                    notifications={notifications}
+                    onMarkAsRead={onMarkAsRead}
+                    onMarkAllAsRead={onMarkAllAsRead}
+                    onNotificationClick={(n) => {
+                      onNotificationClick(n);
+                      setShowNotifications(false);
+                    }}
+                    onClose={() => setShowNotifications(false)}
+                  />
+                )}
+              </div>
+
+              <div className="relative" ref={mobileMenuRef}>
               <button
                 onClick={() => setShowUserMenu(!showUserMenu)}
                 className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white cursor-pointer"
@@ -245,6 +322,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onNavigate, onLogout, onAu
                 </div>
               )}
             </div>
+          </div>
           )}
         </div>
       </div>

@@ -44,6 +44,20 @@ const updateReportStatus = (req, res) => {
     try {
         const result = db.prepare("UPDATE reports SET status = ? WHERE id = ?").run(status, id);
         if (result.changes === 0) return res.status(404).json({ error: "cannot find the report" });
+
+        // Notify reporter
+        const report = db.prepare('SELECT reporter_id, reason FROM reports WHERE id = ?').get(id);
+        if (report) {
+            db.prepare(`
+                INSERT INTO notifications (user_id, type, message, link_id)
+                VALUES (?, 'system', ?, ?)
+            `).run(
+                report.reporter_id,
+                `Your report for "${report.reason}" has been marked as ${status}`,
+                id
+            );
+        }
+
         res.status(200).json({ message: `marked as ${status}` });
     } catch (err) {
         res.status(500).json({ error: err.message });

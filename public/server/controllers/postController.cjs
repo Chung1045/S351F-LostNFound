@@ -90,6 +90,17 @@ const updatePostStatus = (req, res) => {
         const stmt = db.prepare('UPDATE posts SET status = ? WHERE id = ?');
         stmt.run(status, id);
 
+        // Notify user if status was updated by someone else (admin) or just as a confirmation
+        // If it's the owner updating, maybe no need for notification, but let's add it for 'system' type
+        db.prepare(`
+            INSERT INTO notifications (user_id, type, message, link_id)
+            VALUES (?, 'status_update', ?, ?)
+        `).run(
+            post.user_id,
+            `Your post status has been updated to ${status}`,
+            id
+        );
+
         res.json({ message: 'Post status updated' });
     } catch (error) {
         console.error(error);
@@ -112,6 +123,17 @@ const deletePost = (req, res) => {
 
         if (post.user_id !== userId && userRole !== 'admin') {
             return res.status(403).json({ error: 'Unauthorized' });
+        }
+
+        // Notify user if deleted by admin
+        if (userRole === 'admin' && post.user_id !== userId) {
+            db.prepare(`
+                INSERT INTO notifications (user_id, type, message)
+                VALUES (?, 'system', ?)
+            `).run(
+                post.user_id,
+                `Your post has been removed by an administrator.`
+            );
         }
 
         const stmt = db.prepare('DELETE FROM posts WHERE id = ?');

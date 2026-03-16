@@ -11,18 +11,24 @@ interface AdminDashboardProps {
   onReviewPost: (post: Post) => void;
   onDeletePost: (postId: string) => void;
   onResolveReport: (reportId: string) => void;
+  onDeleteUser: (userId: string) => void;
 }
 
-export const AdminDashboard: React.FC<AdminDashboardProps> = ({ posts, reports, users, onReviewPost, onDeletePost, onResolveReport }) => {
+export const AdminDashboard: React.FC<AdminDashboardProps> = ({ posts, reports, users, onReviewPost, onDeletePost, onResolveReport, onDeleteUser }) => {
   const { t } = useApp();
   const [reportToDelete, setReportToDelete] = useState<string | null>(null);
+  const [userToDelete, setUserToDelete] = useState<string | null>(null);
+  const [postToDelete, setPostToDelete] = useState<Post | null>(null);
 
   const pendingReports = reports.filter(r => r.status === 'pending');
-  const reportedPosts = posts.filter(p => p.isReported);
+  const reportedPostIds = new Set(pendingReports.filter(r => r.targetType === 'post').map(r => r.targetId));
+  const reportedPosts = posts.filter(p => reportedPostIds.has(p.id));
 
   const sortedPosts = [...posts].sort((a, b) => {
-    if (a.isReported && !b.isReported) return -1;
-    if (!a.isReported && b.isReported) return 1;
+    const aIsReported = reportedPostIds.has(a.id);
+    const bIsReported = reportedPostIds.has(b.id);
+    if (aIsReported && !bIsReported) return -1;
+    if (!aIsReported && bIsReported) return 1;
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
 
@@ -44,7 +50,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ posts, reports, 
         </div>
         <div className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm">
           <p className="text-green-500 text-sm font-medium mb-1">{t.admin.resolvedCases}</p>
-          <p className="text-3xl font-black text-green-600">{posts.filter(p => p.status === 'resolved').length}</p>
+          <p className="text-3xl font-black text-green-600">{reports.filter(r => r.status === 'resolved').length}</p>
         </div>
       </div>
 
@@ -69,22 +75,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ posts, reports, 
         </div>
 
         <div className="divide-y divide-gray-50 dark:divide-gray-700 max-h-[600px] overflow-y-auto">
-          {sortedPosts.map((post) => (
-            <div key={post.id} className={`p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${post.isReported ? 'bg-red-50/30 dark:bg-red-900/10' : ''}`}>
-              <div className="flex gap-4">
-                <div className="flex-shrink-0">
-                  <img src={post.imageUrl} alt={post.title} className="w-24 h-24 object-cover rounded-2xl border border-gray-200 dark:border-gray-600" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-4 mb-2">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2 flex-wrap">
-                        {post.isReported && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400 rounded-full text-xs font-bold">
-                            <Flag size={12} />
-                            {t.admin.reportedBadge}
-                          </span>
-                        )}
+          {sortedPosts.map((post) => {
+            const isReported = reportedPostIds.has(post.id);
+            return (
+              <div key={post.id} className={`p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${isReported ? 'bg-red-50/30 dark:bg-red-900/10' : ''}`}>
+                <div className="flex gap-4">
+                  <div className="flex-shrink-0">
+                    <img src={post.imageUrl} alt={post.title} className="w-24 h-24 object-cover rounded-2xl border border-gray-200 dark:border-gray-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-4 mb-2">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2 flex-wrap">
+                          {isReported && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400 rounded-full text-xs font-bold">
+                              <Flag size={12} />
+                              {t.admin.reportedBadge}
+                            </span>
+                          )}
                         <span className={`px-2 py-0.5 rounded-full text-xs font-bold uppercase ${post.type === 'lost' ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'}`}>
                           {post.type === 'lost' ? t.grid.lost : t.grid.found}
                         </span>
@@ -108,7 +116,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ posts, reports, 
                         <Eye size={18} />
                       </button>
                       <button
-                        onClick={() => { if (window.confirm(`Delete "${post.title}"?`)) onDeletePost(post.id); }}
+                        onClick={() => setPostToDelete(post)}
                         className="p-2.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors cursor-pointer"
                       >
                         <Trash2 size={18} />
@@ -118,7 +126,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ posts, reports, 
                 </div>
               </div>
             </div>
-          ))}
+          );
+        })}
           {posts.length === 0 && (
             <div className="p-12 text-center text-gray-400 dark:text-gray-500">
               <ShieldCheck size={48} className="mx-auto mb-4 opacity-10" />
@@ -218,7 +227,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ posts, reports, 
                     {user.role}
                   </span>
                   {user.role !== 'admin' && (
-                    <button className="text-red-400 hover:text-red-600 p-2 cursor-pointer transition-colors">
+                    <button 
+                      onClick={() => setUserToDelete(user.id)}
+                      className="text-red-400 hover:text-red-600 p-2 cursor-pointer transition-colors"
+                    >
                       <Trash2 size={18} />
                     </button>
                   )}
@@ -228,6 +240,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ posts, reports, 
           </div>
         </div>
       </div>
+
+      {postToDelete && (
+        <ConfirmDialog
+          title={t.admin.deletePostTitle || "Delete Post?"}
+          message={t.admin.deletePostMessage || `Are you sure you want to delete "${postToDelete.title}"? This action cannot be undone.`}
+          confirmText={t.admin.deleteConfirm || "Delete Post"}
+          variant="danger"
+          onConfirm={() => {
+            onDeletePost(postToDelete.id);
+            setPostToDelete(null);
+          }}
+          onCancel={() => setPostToDelete(null)}
+        />
+      )}
 
       {reportToDelete && (
         <ConfirmDialog
@@ -240,6 +266,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ posts, reports, 
             setReportToDelete(null);
           }}
           onCancel={() => setReportToDelete(null)}
+        />
+      )}
+
+      {userToDelete && (
+        <ConfirmDialog
+          title="Delete User Account?"
+          message="Are you sure you want to permanently delete this user's account? All their posts and comments will be removed. This action cannot be undone."
+          confirmText="Delete User"
+          variant="danger"
+          onConfirm={() => {
+            onDeleteUser(userToDelete);
+            setUserToDelete(null);
+          }}
+          onCancel={() => setUserToDelete(null)}
         />
       )}
     </div>

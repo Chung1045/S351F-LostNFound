@@ -40,6 +40,20 @@ const addComment = (req, res) => {
         `);
         const info = stmt.run(postId, userId, content);
 
+        // Create notification for post owner
+        const postOwner = db.prepare('SELECT user_id, title FROM posts WHERE id = ?').get(postId);
+        if (postOwner && postOwner.user_id !== userId) {
+            db.prepare(`
+                INSERT INTO notifications (user_id, sender_id, type, message, link_id)
+                VALUES (?, ?, 'comment', ?, ?)
+            `).run(
+                postOwner.user_id,
+                userId,
+                `New comment on your post "${postOwner.title}"`,
+                postId
+            );
+        }
+
         res.status(201).json({ message: 'Comment added', id: info.lastInsertRowid });
     } catch (error) {
         console.error(error);

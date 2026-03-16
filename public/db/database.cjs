@@ -25,7 +25,7 @@ const initDatabase = async () => {
         db.pragma('journal_mode = WAL');
         db.pragma('foreign_keys = ON');
 
-        db.exec(`
+        db.exec(`    
             CREATE TABLE IF NOT EXISTS users (
                 id           TEXT     PRIMARY KEY,
                 username     TEXT     UNIQUE NOT NULL,
@@ -34,12 +34,6 @@ const initDatabase = async () => {
                 role         TEXT     NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin')),
                 show_contact INTEGER  NOT NULL DEFAULT 1,
                 created_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-            );
-
-            CREATE TABLE IF NOT EXISTS refresh_tokens (
-                token TEXT PRIMARY KEY,
-                user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
             );
         
             CREATE TABLE IF NOT EXISTS posts (
@@ -105,13 +99,6 @@ const initDatabase = async () => {
                 created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
             );
         `)
-        db.prepare(`INSERT OR IGNORE INTO report_categories (id, name) VALUES (1, 'Spam')`).run();
-        db.prepare(`INSERT OR IGNORE INTO report_categories (id, name) VALUES (2, 'Harassment')`).run();
-        db.prepare(`INSERT OR IGNORE INTO report_categories (id, name) VALUES (3, 'False Info')`).run();
-        db.prepare(`INSERT OR IGNORE INTO report_categories (id, name) VALUES (4, 'Inappropriate Content')`).run();
-        db.prepare(`INSERT OR IGNORE INTO report_categories (id, name) VALUES (5, 'Other')`).run();
-        db.prepare("UPDATE users SET role = 'admin' WHERE id = '11f1443b-2bd6-4b4b-89ff-ad1ecf1b016d'").run();
-
         console.log("Database schema initialized successfully");
 
         // Seed default admin user
@@ -121,8 +108,8 @@ const initDatabase = async () => {
             try {
                 const hashedPassword = await argon2.hash('admin123');
                 const id = uuidv4();
-                db.prepare("INSERT INTO users (id, username, email, password, role) VALUES (?, ?, ?, ?, ?)").run(id, 'admin', 'admin@foundit.com', hashedPassword, 'admin');
-                console.log("Default admin account created: Email: admin@foundit.com, Password: admin123");
+                db.prepare("INSERT INTO users (id, username, email, password, role) VALUES (?, ?, ?, ?, ?)").run(id, 'admin', 'admin@example.com', hashedPassword, 'admin');
+                console.log("Default admin account created: Email: admin@example.com, Password: admin123");
             } catch (seedErr) {
                 console.error("Failed to seed admin account:", seedErr);
             }
