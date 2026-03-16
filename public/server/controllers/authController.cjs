@@ -62,88 +62,192 @@ const register = async (req, res) => {
 
 // Login
 const login = async (req, res) => {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+        return res.status(400).json({ message: 'Email and password are required' });
+    }
+
     try {
-        const { email, password } = req.body;
-        if (!email || !password) {
-            return res.status(400).json({ error: 'Email and password are required' });
+        const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
+        if (!user) {
+            return res.status(401).json({ message: 'Invalid email or password' });
         }
 
-        const stmt = db.prepare('SELECT * FROM users WHERE email = ?');
-        const user = stmt.get(email);
-
-        if (!user || !(await argon2.verify(user.password, password))) {
-            return res.status(401).json({ error: 'Invalid email or password' });
+        const validPassword = await argon2.verify(user.password.toString(), password);
+        if (!validPassword) {
+            return res.status(401).json({ message: 'Invalid email or password' });
         }
 
-        const token = jwt.sign({ id: user.id, username: user.username, role: user.role }, process.env.JWT_SECRET || 'your-secret-key', { expiresIn: '24h' });
-        res.json({ user: { id: user.id, name: user.username, email: user.email, role: user.role }, token });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Internal server error' });
+        const token = jwt.sign(
+            { id: user.id, role: user.role },
+            process.env.JWT_SECRET,
+            { expiresIn: '15m' }
+        );
+
+        const refreshToken = uuidv4();
+
+        db.prepare(`
+            INSERT INTO refresh_tokens (token, user_id) VALUES (?, ?)
+        `).run(refreshToken, user.id);
+
+        res.cookie('refresh_token', refreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000
+        })
+
+        return res.status(200).json({
+            message: 'Login successful',
+            token,
+            user: {
+                id: user.id,
+                name: user.username,
+                email: user.email,
+                role: user.role,
+                show_contact: user.show_contact
+            }
+        });
+
+    } catch (err) {
+        console.error('Login error:', err);
+        return res.status(500).json({ message: 'Internal server error' });
     }
 }
 
+// TODO: need update
+// Refresh Token
+const refresh = (req, res) => {
+    const refreshToken = req.cookies.refresh_token;
+
+    if (!refreshToken) {
+        return res.status(401).json({ message: 'No refresh token provided' });
+    }
+
+    try {
+        const storedToken = db.prepare(`
+            SELECT * FROM refresh_tokens WHERE token = ?
+        `).get(refreshToken);
+
+        if (!storedToken) {
+            return res.status(401).json({ message: 'Invalid or expired refresh token' });
+        }
+
+        const user = db.prepare('SELECT * FROM users WHERE id = ?').get(storedToken.user_id);
+        if (!user) {
+            return res.status(401).json({ message: 'User not found' });
+        }
+
+        const accessToken = jwt.sign(
+            { id: user.id, role: user.role },
+            process.env.JWT_SECRET,
+            { expiresIn: '15m' }
+        );
+
+        return res.status(200).json({ accessToken });
+
+    } catch (err) {
+        console.error('Refresh error:', err);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
+};
+
 // Logout
 const logout = (req, res) => {
-    res.json({ message: 'Logged out successfully' });
+    const refreshToken = req.cookies.refresh_token;
+
+    if (refreshToken) {
+        console.log("Refresh token is found in the cookies. Deleting it... ")
+        db.prepare('DELETE FROM refresh_tokens WHERE token = ?').run(refreshToken);
+    }
+
+    res.clearCookie('refreshToken', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict'
+    });
+
+    return res.status(200).json({ message: 'Logged out successfully' });
 }
 
 // Update Current User Password
 const updatePassword = async (req, res) => {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+        return res.status(400).json({ message: 'Current and new password are required' });
+    }
+
     try {
-        const { currentPassword, newPassword } = req.body;
-        const userId = req.user.id;
+        const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
 
-        const stmt = db.prepare('SELECT password FROM users WHERE id = ?');
-        const user = stmt.get(userId);
-
-        if (!user || !(await argon2.verify(user.password, currentPassword))) {
-            return res.status(401).json({ error: 'Invalid current password' });
+        const validPassword = await argon2.verify(user.password.toString(), currentPassword);
+        if (!validPassword) {
+            return res.status(401).json({ message: 'Current password is incorrect' });
         }
 
-        const hashedNewPassword = await argon2.hash(newPassword);
-        const updateStmt = db.prepare('UPDATE users SET password = ? WHERE id = ?');
-        updateStmt.run(hashedNewPassword, userId);
+        const hashedPassword = await argon2.hash(newPassword);
+        db.prepare('UPDATE users SET password = ? WHERE id = ?').run(hashedPassword, req.user.id);
 
-        res.json({ message: 'Password updated successfully' });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Internal server error' });
+        db.prepare('DELETE FROM refresh_tokens WHERE user_id = ?').run(req.user.Id);
+
+        return res.status(200).json({ message: 'Password updated successfully' });
+
+    } catch (err) {
+        console.error('Update password error:', err);
+        return res.status(500).json({ message: 'Internal server error' });
     }
 };
 
 // Get Current User Profile
 const getProfile = (req, res) => {
     try {
-        const stmt = db.prepare('SELECT id, username as name, email, role FROM users WHERE id = ?');
-        const user = stmt.get(req.user.id);
+        const user = db.prepare(
+            'SELECT id, username, email, role, show_contact, created_at FROM users WHERE id = ?'
+        ).get(req.user.id);
 
         if (!user) {
-            return res.status(404).json({ error: 'User not found' });
+            return res.status(404).json({ message: 'User not found' });
         }
-        res.json({ user });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Internal server error' });
+
+        return res.status(200).json({ user });
+
+    } catch (err) {
+        console.error('Get me error:', err);
+        return res.status(500).json({ message: 'Internal server error' });
     }
 };
 
 // Update Current User Profile
+// TODO: Need to fix the updateProfile function to stop it from logout
 const updateProfile = (req, res) => {
+    const { username, email, show_contact } = req.body;
+
+    if (!username && !email && show_contact === undefined) {
+        return res.status(400).json({ message: 'Nothing to update' });
+    }
+
     try {
-        const { name, email } = req.body;
-        const userId = req.user.id;
+        const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
 
-        const stmt = db.prepare('UPDATE users SET username = ?, email = ? WHERE id = ?');
-        stmt.run(name, email, userId);
+        const updatedUsername = username ?? user.username;
+        const updatedEmail = email ?? user.email;
+        const updatedShowContact = show_contact !== undefined ? (show_contact ? 1 : 0) : user.show_contact;
 
-        res.json({ message: 'Profile updated successfully', user: { id: userId, name, email, role: req.user.role } });
-    } catch (error) {
-        if (error.message.includes('UNIQUE constraint failed')) {
+        db.prepare(`
+            UPDATE users SET username = ?, email = ?, show_contact = ? WHERE id = ?
+        `).run(updatedUsername, updatedEmail, updatedShowContact, req.user.id);
+
+        return res.status(200).json({ message: 'Profile updated successfully' });
+
+    } catch (err) {
+        console.error('Update me error:', err);
+        if (err.message.includes('UNIQUE constraint failed')) {
             return res.status(400).json({ error: 'Username or email already exists' });
+        } else {
+            return res.status(500).json({ message: 'Internal server error' });
         }
-        console.error(error);
-        res.status(500).json({ error: 'Internal server error' });
     }
 };
 
@@ -175,4 +279,4 @@ const deleteAccount = (req, res) => {
     }
 };
 
-module.exports = { register, login, logout, updatePassword, getProfile, updateProfile, getUsers, deleteAccount };
+module.exports = { register, refresh, login, logout, updatePassword, getProfile, updateProfile, getUsers, deleteAccount };
