@@ -107,6 +107,7 @@ export const api = {
         headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
       });
+      console.log('Response from updateStatus:', response);
       return handleResponse(response);
     },
     delete: async (id: string) => {

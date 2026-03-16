@@ -121,7 +121,7 @@ function AppContent() {
   const handleLogin = (loggedInUser: User) => {
     setUser(loggedInUser);
     setShowLogin(false);
-    
+
     // Redirect based on role
     if (loggedInUser.role === 'admin') {
       setCurrentPage('admin');
@@ -181,30 +181,64 @@ function AppContent() {
     }
   };
 
-  const handleUpdatePostStatus = async (postId: string) => {
+
+  // TODO
+  // const handleUpdatePostStatus = async (postId: string) => {
+  //   try {
+  //     await api.posts.updateStatus(postId, 'resolved'); // Assuming 'resolved' maps to 'collected' or 'found' depending on logic, backend sets to 'resolved' or specific status?
+  //     // Backend updatePostStatus takes status from body.
+  //     // Let's check backend logic. It takes status from body.
+  //     // Wait, frontend ItemDetails calls onUpdateStatus which calls handleUpdatePostStatus.
+  //     // ItemDetails passes nothing.
+  //     // Let's assume we want to mark as 'collected' if found, or 'found' if lost?
+  //     // The backend constraint is CHECK (status IN ('active', 'collected', 'found')).
+  //     // Let's just set it to 'found' for now as a generic resolution, or 'collected'.
+  //     // The mock implementation set it to 'resolved'. But DB constraint doesn't have 'resolved'.
+  //     // DB has 'active', 'collected', 'found'.
+  //     // Let's use 'collected' as "resolved".
+  //
+  //     // Wait, let's check ItemDetails.tsx to see what it expects.
+  //     // It says "Mark as Found" or "Mark as Collected".
+  //     // Let's just toggle status.
+  //
+  //     // For now, I'll send 'collected' as a safe default for resolution.
+  //     await api.posts.updateStatus(postId, 'collected');
+  //
+  //     setPosts(prev => prev.map(p => p.id === postId ? { ...p, status: 'collected' } : p));
+  //     toast.success('Status updated successfully!');
+  //   } catch (error) {
+  //     toast.error('Failed to update status');
+  //   }
+  // };
+
+  const handleUpdatePostStatus = async (postId: string, type: Post['type']) => {
     try {
-      await api.posts.updateStatus(postId, 'resolved'); // Assuming 'resolved' maps to 'collected' or 'found' depending on logic, backend sets to 'resolved' or specific status? 
-      // Backend updatePostStatus takes status from body.
-      // Let's check backend logic. It takes status from body.
-      // Wait, frontend ItemDetails calls onUpdateStatus which calls handleUpdatePostStatus.
-      // ItemDetails passes nothing.
-      // Let's assume we want to mark as 'collected' if found, or 'found' if lost?
-      // The backend constraint is CHECK (status IN ('active', 'collected', 'found')).
-      // Let's just set it to 'found' for now as a generic resolution, or 'collected'.
-      // The mock implementation set it to 'resolved'. But DB constraint doesn't have 'resolved'.
-      // DB has 'active', 'collected', 'found'.
-      // Let's use 'collected' as "resolved".
-      
-      // Wait, let's check ItemDetails.tsx to see what it expects.
-      // It says "Mark as Found" or "Mark as Collected".
-      // Let's just toggle status.
-      
-      // For now, I'll send 'collected' as a safe default for resolution.
-      await api.posts.updateStatus(postId, 'collected');
-      
-      setPosts(prev => prev.map(p => p.id === postId ? { ...p, status: 'collected' } : p));
+      // Determine the new status based on the post type
+      let newStatus: Post['status'];
+      // The value passed in is inlowercase, not captipalized
+
+      console.log(`Post Type: ${type} `);
+      console.log(`Post ID: ${postId} `);
+
+      if (type === 'Lost') {
+        newStatus = 'found';
+      } else if (type === 'Found') {
+        newStatus = 'collected';
+      } else {
+        throw new Error('Invalid post type');
+      }
+
+      // Update the status via API
+      await api.posts.updateStatus(postId, newStatus);
+
+      // Update local state
+      setPosts(prev => prev.map(p =>
+          p.id === postId ? { ...p, status: newStatus } : p
+      ));
+
       toast.success('Status updated successfully!');
     } catch (error) {
+      console.error('Failed to update status:', error);
       toast.error('Failed to update status');
     }
   };
@@ -317,10 +351,10 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-[#FDFDFD] dark:bg-gray-950 text-gray-900 dark:text-white selection:bg-blue-100 selection:text-blue-900">
-      <Navbar 
-        user={user} 
-        onNavigate={setCurrentPage} 
-        onLogout={handleLogout} 
+      <Navbar
+        user={user}
+        onNavigate={setCurrentPage}
+        onLogout={handleLogout}
         onAuth={handleShowLogin}
         onCreatePost={() => setShowPostForm(true)}
         onShowProfile={() => setShowProfile(true)}
@@ -352,13 +386,13 @@ function AppContent() {
                     {t.hero.subtitle}
                   </p>
                   <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 pt-2 sm:pt-4">
-                    <button 
+                    <button
                       onClick={() => setShowPostForm(true)}
                       className="px-6 sm:px-8 py-3 sm:py-4 bg-white text-blue-900 rounded-xl sm:rounded-2xl font-black hover:bg-blue-50 transition-all shadow-xl shadow-black/20 flex items-center justify-center gap-2 group cursor-pointer text-sm sm:text-base"
                     >
                       {t.hero.reportBtn} <Plus size={18} className="sm:w-5 sm:h-5 group-hover:rotate-90 transition-transform" />
                     </button>
-                    <button 
+                    <button
                       onClick={() => { const el = document.getElementById('browse'); el?.scrollIntoView({ behavior: 'smooth' }); }}
                       className="px-6 sm:px-8 py-3 sm:py-4 bg-blue-600/30 backdrop-blur-md text-white border border-white/20 rounded-xl sm:rounded-2xl font-black hover:bg-white/10 transition-all flex items-center justify-center gap-2 group cursor-pointer text-sm sm:text-base"
                     >
@@ -366,7 +400,7 @@ function AppContent() {
                     </button>
                   </div>
                 </div>
-                
+
                 {/* Decorative Elements */}
                 <div className="absolute top-[-10%] right-[-10%] w-[60%] h-[120%] bg-blue-500/20 blur-[120px] rounded-full" />
                 <div className="absolute bottom-[-20%] left-[-10%] w-[40%] h-[80%] bg-indigo-500/20 blur-[100px] rounded-full" />
@@ -398,14 +432,14 @@ function AppContent() {
                   <h1 className="text-3xl font-black text-gray-900 dark:text-white">Admin Command Center</h1>
                   <p className="text-gray-500 dark:text-gray-400">Monitor reports and moderate community content.</p>
                 </div>
-                <button 
+                <button
                   onClick={() => setCurrentPage('home')}
                   className="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-all cursor-pointer"
                 >
                   Exit Admin
                 </button>
               </div>
-              <AdminDashboard 
+              <AdminDashboard
                 posts={posts}
                 reports={reports}
                 users={allUsers}
@@ -421,14 +455,14 @@ function AppContent() {
       {/* Overlays */}
       <AnimatePresence>
         {selectedPost && (
-          <ItemDetails 
+          <ItemDetails
             key="item-details"
             post={selectedPost}
             comments={comments}
             currentUser={user}
             onClose={() => setSelectedPost(null)}
             onAddComment={(content) => handleAddComment(selectedPost.id, content)}
-            onUpdateStatus={() => handleUpdatePostStatus(selectedPost.id)}
+            onUpdateStatus={() => handleUpdatePostStatus(selectedPost.id, selectedPost.type)}
             onReport={(reason) => handleReport(selectedPost.id, reason)}
             onDelete={() => handleDeletePost(selectedPost.id)}
             onReportComment={(commentId, reason) => handleReportComment(commentId, reason)}
@@ -437,7 +471,7 @@ function AppContent() {
         )}
 
         {showPostForm && (
-          <PostForm 
+          <PostForm
             key="post-form"
             onSubmit={handleCreatePost}
             onClose={() => setShowPostForm(false)}
@@ -445,7 +479,7 @@ function AppContent() {
         )}
 
         {showLogin && (
-          <Login 
+          <Login
             key="login"
             onLogin={handleLogin}
             onClose={() => setShowLogin(false)}
@@ -454,7 +488,7 @@ function AppContent() {
         )}
 
         {showSignUp && (
-          <SignUp 
+          <SignUp
             key="signup"
             onClose={() => setShowSignUp(false)}
             onSignUp={handleSignUp}
@@ -463,7 +497,7 @@ function AppContent() {
         )}
 
         {showProfile && user && (
-          <UserProfile 
+          <UserProfile
             key="user-profile"
             user={user}
             posts={posts}
@@ -479,7 +513,7 @@ function AppContent() {
         )}
 
         {showSettings && user && (
-          <UserSettings 
+          <UserSettings
             key="user-settings"
             user={user}
             onClose={() => setShowSettings(false)}
@@ -493,13 +527,13 @@ function AppContent() {
       <Toaster position="bottom-right" richColors />
 
       {/* Quick Add Button (Mobile) */}
-      <button 
+      <button
         onClick={() => setShowPostForm(true)}
         className="md:hidden fixed bottom-6 right-6 w-14 h-14 bg-blue-600 text-white rounded-full shadow-2xl flex items-center justify-center z-40 animate-in fade-in zoom-in cursor-pointer"
       >
         <Plus size={28} />
       </button>
-      
+
       {/* Footer */}
       <footer className="border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 py-12 mt-20">
         <div className="max-w-7xl mx-auto px-8 flex flex-col md:flex-row justify-between items-center gap-8">

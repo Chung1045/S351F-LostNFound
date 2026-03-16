@@ -16,7 +16,8 @@ const getPosts = (req, res) => {
         // Map database fields to frontend model
         const formattedPosts = posts.map(p => ({
             id: p.id,
-            type: p.type.toLowerCase(),
+            // type: p.type.toLowerCase(),
+            type: p.type,
             title: p.title,
             category: p.category,
             description: p.description,
@@ -111,32 +112,67 @@ const createPost = (req, res) => {
     }
 };
 
-const updatePostStatus = (req, res) => {
+// const updatePostStatus = (req, res) => {
+//     try {
+//         const { id } = req.params;
+//         const { status } = req.body;
+//         const userId = req.user.id;
+//         const userRole = req.user.role;
+//
+//         // Check ownership or admin
+//         const postStmt = db.prepare('SELECT user_id FROM posts WHERE id = ?');
+//         const post = postStmt.get(id);
+//
+//         if (!post) {
+//             return res.status(404).json({ error: 'Post not found' });
+//         }
+//
+//         if (post.user_id !== userId && userRole !== 'admin') {
+//             return res.status(403).json({ error: 'Unauthorized' });
+//         }
+//
+//         const stmt = db.prepare('UPDATE posts SET status = ? WHERE id = ?');
+//         stmt.run(status, id);
+//
+//         res.json({ message: 'Post status updated' });
+//     } catch (error) {
+//         console.error(error);
+//         res.status(500).json({ error: 'Internal server error' });
+//     }
+// };
+
+// @route   PUT /api/posts/:id
+// @desc    Update Post (Owner or Admin Only)
+const updatePost = (req, res) => {
+    const { id } = req.params;
+    const { title, description, location, status } = req.body;
+    const currentUserId = req.user.id;
+    const currentUserRole = req.user.role;
+
     try {
-        const { id } = req.params;
-        const { status } = req.body;
-        const userId = req.user.id;
-        const userRole = req.user.role;
+        // Check ownership/role before update
+        const post = db.prepare('SELECT user_id FROM posts WHERE id = ?').get(id);
+        if (!post) return res.status(404).json({ error: "Post not found" });
 
-        // Check ownership or admin
-        const postStmt = db.prepare('SELECT user_id FROM posts WHERE id = ?');
-        const post = postStmt.get(id);
-
-        if (!post) {
-            return res.status(404).json({ error: 'Post not found' });
+        if (post.user_id !== currentUserId && currentUserRole !== 'admin') {
+            return res.status(403).json({ error: "Unauthorized to update this post" });
         }
 
-        if (post.user_id !== userId && userRole !== 'admin') {
-            return res.status(403).json({ error: 'Unauthorized' });
-        }
+        const stmt = db.prepare(`
+            UPDATE posts 
+            SET title = COALESCE(?, title), 
+                description = COALESCE(?, description), 
+                location = COALESCE(?, location),
+                status = COALESCE(?, status),
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        `);
+        stmt.run(title, description, location, status, id);
 
-        const stmt = db.prepare('UPDATE posts SET status = ? WHERE id = ?');
-        stmt.run(status, id);
-
-        res.json({ message: 'Post status updated' });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(200).json({ message: "Post updated successfully" });
+    } catch (err) {
+        console.error("Update Post error:", err);
+        res.status(500).json({ error: "Internal server error: " + err.message });
     }
 };
 
@@ -167,4 +203,4 @@ const deletePost = (req, res) => {
     }
 };
 
-module.exports = { getPosts, createPost, updatePostStatus, deletePost };
+module.exports = { getPosts, createPost, updatePost, deletePost };
