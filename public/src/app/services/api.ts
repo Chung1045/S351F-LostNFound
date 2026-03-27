@@ -137,7 +137,12 @@ export const api = {
       const response = await fetch(`${API_BASE_URL}/reports`, {
         headers: getAuthHeaders(),
       });
-      return handleResponse(response);
+
+      // Don't manually call response.json() - let handleResponse do it
+      const data = await handleResponse(response);
+      console.log("getAll reports:", data);
+
+      return data;
     },
     create: async (reportData: Partial<Report>) => {
       const response = await fetch(`${API_BASE_URL}/reports`, {
@@ -154,5 +159,5 @@ export const api = {
       });
       return handleResponse(response);
     },
-  },
+  }
 };

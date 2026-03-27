@@ -40,6 +40,45 @@ const getComments = (req, res) => {
     }
 };
 
+// @route   GET /api/comments/:id
+// @desc    Get single comment by comment ID
+const getCommentById = (req, res) => {
+
+    console.log("getCommentById invoked")
+    console.log("req.params:", req.params)
+
+    const { id } = req.params
+    console.log("comment id extracted:", id)
+
+    try {
+
+        const comment = db.prepare(`
+            SELECT id, content, created_at
+            FROM comments
+            WHERE id = ?
+        `).get(id)
+
+        console.log("Raw comment from DB:", comment)
+
+        if (!comment) {
+            return res.status(404).json({
+                error: "Comment not found"
+            })
+        }
+
+        res.status(200).json(comment)
+
+    } catch (err) {
+
+        console.error(`Cannot fetch comment ${id}:`, err.message)
+
+        res.status(500).json({
+            error: err.message
+        })
+
+    }
+}
+
 // @route   POST /api/posts/:post_id/comments
 // @desc    Add a comment to a post and notify the post owner
 const addComment = (req, res) => {
@@ -116,4 +155,4 @@ const deleteComment = (req, res) => {
     }
 };
 
-module.exports = { getComments, addComment, deleteComment };
+module.exports = { getComments, getCommentById, addComment, deleteComment };

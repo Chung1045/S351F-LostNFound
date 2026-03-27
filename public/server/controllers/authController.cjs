@@ -3,31 +3,6 @@ const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const db = require('../../db/database.cjs');
 
-// // Register
-// const register = async (req, res) => {
-//     try {
-//         const { username, email, password } = req.body;
-//         if (!username || !email || !password) {
-//             return res.status(400).json({ error: 'All fields are required' });
-//         }
-//
-//         const hashedPassword = await argon2.hash(password);
-//         const id = uuidv4();
-//
-//         const stmt = db.prepare('INSERT INTO users (id, username, email, password, role) VALUES (?, ?, ?, ?, ?)');
-//         stmt.run(id, username, email, hashedPassword, 'user');
-//
-//         const token = jwt.sign({ id, username, role: 'user' }, process.env.JWT_SECRET || 'your-secret-key', { expiresIn: '24h' });
-//         res.status(201).json({ user: { id, name: username, email, role: 'user' }, token });
-//     } catch (error) {
-//         if (error.message.includes('UNIQUE constraint failed')) {
-//             return res.status(400).json({ error: 'Username or email already exists' });
-//         }
-//         console.error(error);
-//         res.status(500).json({ error: 'Internal server error' });
-//     }
-// }
-
 // Register
 const register = async (req, res) => {
     const { username, email, password } = req.body;
