@@ -156,4 +156,4 @@ const deleteComment = (req, res) => {
     }
 };
 
-module.exports = { getComments, addComment };
+module.exports = { getComments, getCommentById, addComment, deleteComment };
