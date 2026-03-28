@@ -118,7 +118,6 @@ const createPost = (req, res) => {
     }
 };
 
-// TODO: Update and merge with frontend
 // @route   PUT /api/posts/:id
 // @desc    Update Post (Owner or Admin Only)
 const updatePost = (req, res) => {
@@ -147,6 +146,17 @@ const updatePost = (req, res) => {
         `);
         stmt.run(title, description, location, status, id);
 
+        // Notify user if status was updated by someone else (admin) or just as a confirmation
+        // If it's the owner updating, maybe no need for notification, but let's add it for 'system' type
+        db.prepare(`
+            INSERT INTO notifications (user_id, type, message, link_id)
+            VALUES (?, 'status_update', ?, ?)
+        `).run(
+            post.user_id,
+            `Your post status has been updated to ${status}`,
+            id
+        );
+
         res.status(200).json({ message: "Post updated successfully" });
     } catch (err) {
         console.error("Update Post error:", err);
@@ -154,7 +164,6 @@ const updatePost = (req, res) => {
     }
 };
 
-// TODO: Update with frontend
 // @route   DELETE /api/posts/:id
 // @desc    Delete a post (Owner or Admin Only)
 const deletePost = (req, res) => {
@@ -187,6 +196,18 @@ const deletePost = (req, res) => {
         if (result.changes === 0) {
             return res.status(404).json({ error: "Delete failed, post not found" });
         }
+
+        // Notify user if deleted by admin
+        if (currentUserRole === 'admin' && post.user_id !== currentUserId) {
+            db.prepare(`
+                INSERT INTO notifications (user_id, type, message)
+                VALUES (?, 'system', ?)
+            `).run(
+                post.user_id,
+                `Your post has been removed by an administrator.`
+            );
+        }
+
 
         res.status(200).json({ message: "Post deleted successfully" });
 
