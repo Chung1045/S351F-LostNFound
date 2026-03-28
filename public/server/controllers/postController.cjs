@@ -41,11 +41,12 @@ const getPosts = (req, res) => {
     }
 };
 
+// TODO: API changed
 // @route   GET /api/posts/:id
 // @desc    Get Post Detail (With Privacy Filter)
 // @route   GET /api/posts/:id
 // @desc    Get Post Detail (With Privacy Check)
-const getPostById = (req, res) => {
+const getPostById = async (req, res) => {
     const { id } = req.params;
 
     try {
@@ -62,27 +63,34 @@ const getPostById = (req, res) => {
             return res.status(404).json({ error: "Post not found" });
         }
 
+        const images = db.prepare('SELECT image_url FROM post_images WHERE post_id = ?').all(id);
 
         if (post.show_contact === 0) {
             post.contact_info = null;
         }
+        const imageUrls = images.map(img => img.image_url);
 
-        res.status(200).json(post);
+        res.status(200).json({
+            ...post,
+            images: imageUrls
+        });
 
     } catch (err) {
-        console.error("GET Post Detail error:", err);
+        console.error('Get Post Error:', err);
         res.status(500).json({ error: err.message });
     }
 };
 
+
+// TODO: Field name changed
 // @route   POST /api/posts
 // @desc    Create Post (Security Fix: user_id from Token)
 const createPost = (req, res) => {
     const user_id = req.user.id;
-    const { type, title, category, description, location, date, time, contactInfo, imageUrl } = req.body;
+    const { type, title, category, description, location, date, time, contactInfo} = req.body;
     const itemDatetime = `${date}T${time}:00Z`;
 
-    console.log("Received data:", { user_id, type, title, category, description, location, date, time, contactInfo, imageUrl });
+    console.log("Received data:", { user_id, type, title, category, description, location, date, time, contactInfo});
 
     if (!type || !title) {
         return res.status(400).json({ error: "missing required fields" });
@@ -93,17 +101,22 @@ const createPost = (req, res) => {
         const executeTransaction = db.transaction(() => {
             const postId = uuidv4();
 
-            // 1. Insert into posts
+
             const stmt = db.prepare(`
                 INSERT INTO posts (id, user_id, type, category, title, description, location, item_datetime, contact_info)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             `);
             stmt.run(postId, user_id, type, category, title, description, location, itemDatetime, contactInfo);
 
-            // 2. Insert into post_images if image_url exists (Method A)
-            if (imageUrl) {
-                db.prepare(`INSERT INTO post_images (id, post_id, image_url) VALUES (?, ?, ?)`)
-                    .run(uuidv4(), postId, imageUrl);
+            if (image_urls && Array.isArray(image_urls)) {
+                const insertImage = db.prepare(`
+                INSERT INTO post_images (id, post_id, image_url) 
+                VALUES (?, ?, ?)
+            `);
+
+                for (const url of image_urls) {
+                    insertImage.run(uuidv4(), postId, url);
+                }
             }
 
             return postId;

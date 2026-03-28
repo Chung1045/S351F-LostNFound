@@ -1,14 +1,20 @@
 /.idea
-*.env
-node_modules/
-*.db
 /shelf/
+/dist
 /workspace.xml
+node_modules/
+# Environmental variables
+*.env
+# Database
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
 # Editor-based HTTP Client requests
 /httpRequests/
 # Datasource local storage ignored files
 /dataSources/
 /dataSources.local.xml
-/dist
-*.db-wal
-*.db-shm
+# Images and uploaded files
+public/uploads/*
+!public/uploads/.gitkeep
