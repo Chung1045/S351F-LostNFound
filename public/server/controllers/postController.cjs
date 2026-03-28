@@ -118,6 +118,7 @@ const createPost = (req, res) => {
     }
 };
 
+// TODO: Update and merge with frontend
 // @route   PUT /api/posts/:id
 // @desc    Update Post (Owner or Admin Only)
 const updatePost = (req, res) => {
@@ -153,6 +154,7 @@ const updatePost = (req, res) => {
     }
 };
 
+// TODO: Update with frontend
 // @route   DELETE /api/posts/:id
 // @desc    Delete a post (Owner or Admin Only)
 const deletePost = (req, res) => {

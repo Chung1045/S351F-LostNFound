@@ -79,6 +79,7 @@ const getCommentById = (req, res) => {
     }
 }
 
+// TODO: Merge with frontend
 // @route   POST /api/posts/:post_id/comments
 // @desc    Add a comment to a post and notify the post owner
 const addComment = (req, res) => {
@@ -155,4 +156,4 @@ const deleteComment = (req, res) => {
     }
 };
 
-module.exports = { getComments, getCommentById, addComment, deleteComment };
+module.exports = { getComments, addComment };

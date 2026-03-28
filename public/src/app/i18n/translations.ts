@@ -16,6 +16,15 @@ const translations = {
       signOutTitle: 'Sign Out',
       signOutMessage: 'Are you sure you want to sign out of your account?',
     },
+    // Notifications
+    notifications: {
+      title: 'Notifications',
+      markAllRead: 'Mark all as read',
+      empty: 'No notifications yet',
+      newComment: 'New comment on your post',
+      reportResolved: 'Your report has been resolved',
+      postDeleted: 'Your post was removed by a moderator',
+    },
     // Hero
     hero: {
       badge: 'Connecting communities worldwide',
@@ -178,6 +187,9 @@ const translations = {
       reportType: (type: string) => type === 'post' ? 'Post Report' : 'Comment Report',
       resolve: 'Resolve',
       pending: 'PENDING',
+      deletePostTitle: 'Delete Post?',
+      deletePostMessage: 'Are you sure you want to delete this post? This action cannot be undone.',
+      deleteConfirm: 'Delete Post',
     },
     // UserProfile
     profile: {
@@ -263,6 +275,15 @@ const translations = {
       stayLoggedIn: '繼續登入',
       signOutTitle: '登出',
       signOutMessage: '您確定要登出帳戶嗎？',
+    },
+    // Notifications
+    notifications: {
+      title: '通知',
+      markAllRead: '全部標記為已讀',
+      empty: '尚無通知',
+      newComment: '您的貼文有新留言',
+      reportResolved: '您的檢舉已處理',
+      postDeleted: '您的貼文已被管理員刪除',
     },
     hero: {
       badge: '連結全球社群',
@@ -418,6 +439,9 @@ const translations = {
       reportType: (type: string) => type === 'post' ? '貼文檢舉' : '留言檢舉',
       resolve: '解決',
       pending: '待處理',
+      deletePostTitle: '刪除貼文？',
+      deletePostMessage: '您確定要刪除此貼文嗎？此操作無法復原。',
+      deleteConfirm: '刪除貼文',
     },
     profile: {
       memberSince: '自 2026 年 2 月起成為會員',

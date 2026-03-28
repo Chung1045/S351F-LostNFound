@@ -8,7 +8,7 @@ import { Login } from './components/Login';
 import { SignUp } from './components/SignUp';
 import { UserProfile } from './components/UserProfile';
 import { UserSettings } from './components/UserSettings';
-import { Post, Comment, User, Report } from './types';
+import { Post, Comment, User, Report, Notification } from './types';
 import { Toaster, toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
 import { Search, MapPin, Plus, ArrowRight } from 'lucide-react';
@@ -30,6 +30,7 @@ function AppContent() {
   const [showProfile, setShowProfile] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
 
   // Initial Data Fetch
   useEffect(() => {
@@ -50,6 +51,12 @@ function AppContent() {
         // Fetch posts
         const fetchedPosts = await api.posts.getAll();
         setPosts(fetchedPosts);
+
+        // Fetch notifications if logged in
+        if (token) {
+          const fetchedNotifications = await api.notifications.getAll();
+          setNotifications(fetchedNotifications);
+        }
       } catch (error) {
         console.error('Failed to initialize app', error);
         toast.error('Failed to load data. Please try again later.');
@@ -118,9 +125,17 @@ function AppContent() {
   }, [user, currentPage]);
 
   // Auth with role-based redirect
-  const handleLogin = (loggedInUser: User) => {
+  const handleLogin = async (loggedInUser: User) => {
     setUser(loggedInUser);
     setShowLogin(false);
+
+    // Fetch notifications
+    try {
+      const fetchedNotifications = await api.notifications.getAll();
+      setNotifications(fetchedNotifications);
+    } catch (error) {
+      console.error('Failed to fetch notifications', error);
+    }
 
     // Redirect based on role
     if (loggedInUser.role === 'admin') {
@@ -159,7 +174,48 @@ function AppContent() {
 
   const handleLogout = () => {
     api.auth.logout();
+    setNotifications([]);
     // Event listener will handle state update and toast
+  };
+
+  // Notification Actions
+  const handleMarkAsRead = async (id: string) => {
+    try {
+      await api.notifications.markAsRead(id);
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+    } catch (error) {
+      console.error('Failed to mark notification as read', error);
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      await api.notifications.markAllAsRead();
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+      toast.success('All notifications marked as read');
+    } catch (error) {
+      console.error('Failed to mark all notifications as read', error);
+    }
+  };
+
+  const handleNotificationClick = async (notification: Notification) => {
+    // Mark as read if not already
+    if (!notification.is_read) {
+      handleMarkAsRead(notification.id);
+    }
+
+    // Navigate to post if link_id exists
+    if (notification.link_id) {
+      const post = posts.find(p => p.id === notification.link_id);
+      if (post) {
+        setSelectedPost(post);
+        setCurrentPage('home');
+      } else {
+        // If post not in current list, maybe it was deleted or we need to fetch it
+        // For now, just show a message if not found
+        toast.info('Post not found or has been removed');
+      }
+    }
   };
 
   // Post Actions
@@ -207,7 +263,6 @@ function AppContent() {
 
       toast.success('Status updated successfully!');
     } catch (error) {
-      console.error('Failed to update status:', error);
       toast.error('Failed to update status');
     }
   };
@@ -217,6 +272,14 @@ function AppContent() {
       await api.posts.delete(postId);
       setPosts(prev => prev.filter(p => p.id !== postId));
       setComments(prev => prev.filter(c => c.postId !== postId));
+
+      // Also resolve any reports related to this post
+      setReports(prev => prev.map(r =>
+        (r.targetType === 'post' && r.targetId === postId)
+          ? { ...r, status: 'resolved' }
+          : r
+      ));
+
       setSelectedPost(null);
       toast.success('Post removed');
     } catch (error) {
@@ -261,6 +324,17 @@ function AppContent() {
       toast.success('Report resolved');
     } catch (error) {
       toast.error('Failed to resolve report');
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    try {
+      await api.admin.deleteUser(userId);
+      setAllUsers(prev => prev.filter(u => u.id !== userId));
+      setPosts(prev => prev.filter(p => p.userId !== userId));
+      toast.success('User account deleted');
+    } catch (error) {
+      toast.error('Failed to delete user');
     }
   };
 
@@ -329,6 +403,10 @@ function AppContent() {
         onShowProfile={() => setShowProfile(true)}
         onShowSettings={() => setShowSettings(true)}
         currentPage={currentPage}
+        notifications={notifications}
+        onMarkAsRead={handleMarkAsRead}
+        onMarkAllAsRead={handleMarkAllAsRead}
+        onNotificationClick={handleNotificationClick}
       />
 
       <main className="max-w-7xl mx-auto px-3 py-6 sm:px-4 sm:py-8 md:px-8">
@@ -415,6 +493,7 @@ function AppContent() {
                 onReviewPost={setSelectedPost}
                 onDeletePost={handleDeletePost}
                 onResolveReport={handleResolveReport}
+                onDeleteUser={handleDeleteUser}
               />
             </motion.div>
           )}

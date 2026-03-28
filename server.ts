@@ -16,11 +16,13 @@ import authRouter from './public/server/route-manager/authRouteManager.cjs';
 import postRouter from './public/server/route-manager/postRouteManager.cjs';
 import commentRouter from './public/server/route-manager/commentRouteManager.cjs';
 import reportRouter from './public/server/route-manager/reportRouteManager.cjs';
+import moderationRouter from './public/server/route-manager/moderationRouteManager.cjs';
+import notificationRouter from './public/server/route-manager/notificationRouteManager.cjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 async function startServer() {
-  const app : any = express();
+  const app = express();
   const PORT = process.env.PORT || 3000;
 
   app.use(cors());
@@ -39,6 +41,12 @@ async function startServer() {
   
   // Mount report routes
   app.use('/api', reportRouter);
+
+  // Mount moderation routes
+  app.use('/api', moderationRouter);
+
+  // Mount notification routes
+  app.use('/api', notificationRouter);
 
   // Health check
   app.get('/api/health', (req, res) => {
