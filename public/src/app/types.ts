@@ -22,7 +22,8 @@ export interface Post {
   time: string;
   contactInfo: string;
   imageUrl: string;
-  status: 'active' | 'resolved';
+  imageUrls?: string[];
+  status: 'active' | 'collected' | 'found';
   userId: string;
   userName: string;
   createdAt: string;
@@ -43,6 +44,9 @@ export interface Report {
   reporterId: string;
   reason: string;
   status: 'pending' | 'resolved';
+  commentContent?: string;
+  reporterName?: string;
+  postId?: string;
 }
 
 export interface Notification {

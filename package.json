@@ -77,9 +77,13 @@
   },
   "devDependencies": {
     "@tailwindcss/vite": "4.1.12",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.5.0",
     "@vitejs/plugin-react": "4.7.0",
     "tailwindcss": "4.1.12",
     "tsx": "^4.21.0",
+    "typescript": "^6.0.2",
     "vite": "6.3.5"
   },
   "pnpm": {

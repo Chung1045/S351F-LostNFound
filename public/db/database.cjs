@@ -115,6 +115,25 @@ const initDatabase = async () => {
             }
         }
 
+        // Seed report categories
+        const categoryCheck = db.prepare("SELECT COUNT(*) as count FROM report_categories").get();
+        if (categoryCheck.count === 0) {
+            console.log("Seeding report categories...");
+            const categories = [
+                'Inappropriate Content',
+                'Spam',
+                'Scam or Fraud',
+                'Harassment',
+                'Misleading Information',
+                'Other'
+            ];
+            const insertCategory = db.prepare("INSERT INTO report_categories (name) VALUES (?)");
+            for (const category of categories) {
+                insertCategory.run(category);
+            }
+            console.log("Report categories seeded.");
+        }
+
         initialized = true;
     } catch (err) {
         console.error('Database initialization failed:', err);

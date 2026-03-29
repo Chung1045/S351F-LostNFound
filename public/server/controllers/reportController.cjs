@@ -35,15 +35,15 @@ const getReports = (req, res) => {
 
 const createReport = (req, res) => {
     try {
-        const { targetType, targetId, reason } = req.body;
+        const { target_type, target_id, reason, category_id } = req.body;
         const id = uuidv4();
         const reporterId = req.user.id;
 
         const stmt = db.prepare(`
-            INSERT INTO reports (id, reporter_id, target_type, target_id, reason, status) 
-            VALUES (?, ?, ?, ?, ?, 'pending')
+            INSERT INTO reports (id, reporter_id, target_type, target_id, reason, category_id, status) 
+            VALUES (?, ?, ?, ?, ?, ?, 'pending')
         `);
-        stmt.run(id, reporterId, targetType, targetId, reason);
+        stmt.run(id, reporterId, target_type, target_id, reason, category_id || 1);
 
         res.status(201).json({ message: 'Report submitted', id });
     } catch (error) {

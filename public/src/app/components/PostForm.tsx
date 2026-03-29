@@ -14,7 +14,7 @@ const CATEGORIES: Category[] = ['Electronics', 'Clothing', 'Documents', 'Keys', 
 
 export const PostForm: React.FC<PostFormProps> = ({ onSubmit, onClose, initialData }) => {
   const { t } = useApp();
-  const [imagePreview, setImagePreview] = useState<string | null>(initialData?.imageUrl || null);
+  const [imagePreviews, setImagePreviews] = useState<string[]>(initialData?.imageUrls || (initialData?.imageUrl ? [initialData.imageUrl] : []));
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const { register, handleSubmit, watch, formState: { errors } } = useForm({
@@ -29,24 +29,31 @@ export const PostForm: React.FC<PostFormProps> = ({ onSubmit, onClose, initialDa
   const watchType = watch('type');
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    files.forEach(file => {
       if (file.size > 5 * 1024 * 1024) {
-        alert('Image must be less than 5MB');
+        alert(`Image ${file.name} must be less than 5MB`);
         return;
       }
       const reader = new FileReader();
       reader.onloadend = () => {
-        setImagePreview(reader.result as string);
+        setImagePreviews(prev => [...prev, reader.result as string]);
       };
       reader.readAsDataURL(file);
+    });
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
   const handleFormSubmit = (data: any) => {
     onSubmit({
       ...data,
-      imageUrl: imagePreview || undefined
+      imageUrls: imagePreviews.length > 0 ? imagePreviews : undefined,
+      imageUrl: imagePreviews.length > 0 ? imagePreviews[0] : undefined
     });
   };
 
@@ -154,27 +161,32 @@ export const PostForm: React.FC<PostFormProps> = ({ onSubmit, onClose, initialDa
                 ref={fileInputRef} 
                 onChange={handleImageChange} 
                 accept="image/*" 
+                multiple
                 className="hidden" 
               />
               
-              {imagePreview ? (
-                <div className="relative w-full h-48 sm:h-64 rounded-2xl overflow-hidden group">
-                  <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
-                    <button 
-                      type="button" 
-                      onClick={() => fileInputRef.current?.click()} 
-                      className="p-2 bg-white text-gray-900 rounded-full hover:bg-gray-100 transition-colors cursor-pointer"
-                    >
-                      <Camera size={20} />
-                    </button>
-                    <button 
-                      type="button" 
-                      onClick={() => setImagePreview(null)} 
-                      className="p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors cursor-pointer"
-                    >
-                      <Trash2 size={20} />
-                    </button>
+              {imagePreviews.length > 0 ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  {imagePreviews.map((preview, index) => (
+                    <div key={index} className="relative w-full aspect-square rounded-2xl overflow-hidden group">
+                      <img src={preview} alt={`Preview ${index}`} className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <button 
+                          type="button" 
+                          onClick={() => setImagePreviews(prev => prev.filter((_, i) => i !== index))} 
+                          className="p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors cursor-pointer"
+                        >
+                          <Trash2 size={20} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                  <div 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full aspect-square border-2 border-dashed border-gray-200 dark:border-gray-600 rounded-2xl flex flex-col items-center justify-center gap-2 bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer text-gray-400 hover:text-blue-500 group"
+                  >
+                    <Camera size={24} className="group-hover:scale-110 transition-transform"/>
+                    <span className="text-xs font-semibold">Add More</span>
                   </div>
                 </div>
               ) : (

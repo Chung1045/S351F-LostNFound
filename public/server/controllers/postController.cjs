@@ -6,7 +6,8 @@ const getPosts = (req, res) => {
         const stmt = db.prepare(`
             SELECT p.*, u.username as userName,
                    (SELECT COUNT(*) FROM reports r WHERE r.target_id = p.id AND r.status = 'pending') as reportCount,
-                   (SELECT image_url FROM post_images pi WHERE pi.post_id = p.id LIMIT 1) as imageUrl
+                   (SELECT image_url FROM post_images pi WHERE pi.post_id = p.id LIMIT 1) as imageUrl,
+                   (SELECT json_group_array(image_url) FROM post_images pi WHERE pi.post_id = p.id) as imageUrls
             FROM posts p 
             JOIN users u ON p.user_id = u.id 
             ORDER BY p.created_at DESC
@@ -29,6 +30,7 @@ const getPosts = (req, res) => {
             userName: p.userName,
             createdAt: p.created_at,
             imageUrl: p.imageUrl || 'https://images.unsplash.com/photo-1621735320171-a682f45d7172?auto=format&fit=crop&q=80&w=800',
+            imageUrls: JSON.parse(p.imageUrls || '[]'),
             isReported: p.reportCount > 0
         }));
 
@@ -41,7 +43,7 @@ const getPosts = (req, res) => {
 
 const createPost = (req, res) => {
     try {
-        const { type, title, category, description, location, date, time, contactInfo, imageUrl } = req.body;
+        const { type, title, category, description, location, date, time, contactInfo, imageUrls } = req.body;
         const id = uuidv4();
         const userId = req.user.id;
         const itemDatetime = `${date}T${time}:00Z`;
@@ -56,9 +58,11 @@ const createPost = (req, res) => {
 
         stmt.run(id, userId, dbType, category, title, description, location, itemDatetime, contactInfo);
 
-        if (imageUrl) {
+        if (imageUrls && Array.isArray(imageUrls)) {
             const imgStmt = db.prepare(`INSERT INTO post_images (id, post_id, image_url) VALUES (?, ?, ?)`);
-            imgStmt.run(uuidv4(), id, imageUrl);
+            for (const url of imageUrls) {
+                imgStmt.run(uuidv4(), id, url);
+            }
         }
 
         res.status(201).json({ message: 'Post created successfully', id });

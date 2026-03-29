@@ -15,7 +15,6 @@ dotenv.config();
 import authRouter from './public/server/route-manager/authRouteManager.cjs';
 import postRouter from './public/server/route-manager/postRouteManager.cjs';
 import commentRouter from './public/server/route-manager/commentRouteManager.cjs';
-import reportRouter from './public/server/route-manager/reportRouteManager.cjs';
 import moderationRouter from './public/server/route-manager/moderationRouteManager.cjs';
 import notificationRouter from './public/server/route-manager/notificationRouteManager.cjs';
 
@@ -39,9 +38,6 @@ async function startServer() {
   // Mount comment routes
   app.use('/api', commentRouter);
   
-  // Mount report routes
-  app.use('/api', reportRouter);
-
   // Mount moderation routes
   app.use('/api', moderationRouter);
 
@@ -73,7 +69,7 @@ async function startServer() {
     }
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
+  app.listen(Number(PORT), '0.0.0.0', () => {
     console.log(`Server running on http://localhost:${PORT}`);
     console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
   });
