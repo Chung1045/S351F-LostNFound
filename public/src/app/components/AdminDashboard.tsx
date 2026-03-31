@@ -20,6 +20,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ posts, reports, 
   const [reportToDelete, setReportToDelete] = useState<string | null>(null);
   const [userToDelete, setUserToDelete] = useState<string | null>(null);
   const [postToDelete, setPostToDelete] = useState<Post | null>(null);
+  const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
 
   const pendingReports = reports.filter(r => r.status === 'pending');
   const reportedPostIds = new Set(pendingReports.filter(r => r.targetType === 'post').map(r => r.targetId));
@@ -211,11 +212,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ posts, reports, 
                           </button>
                         ) : (
                           <button 
-                            onClick={() => {
-                              if(window.confirm('Are you sure you want to delete this comment?')) {
-                                onDeleteComment(report.targetId);
-                              }
-                            }} 
+                            onClick={() => setCommentToDelete(report.targetId)} 
                             className="flex items-center gap-2 px-3 py-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors cursor-pointer text-xs font-bold"
                           >
                             <Trash2 size={16} />
@@ -314,6 +311,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ posts, reports, 
             setUserToDelete(null);
           }}
           onCancel={() => setUserToDelete(null)}
+        />
+      )}
+
+      {commentToDelete && (
+        <ConfirmDialog
+          title="Delete Comment?"
+          message="Are you sure you want to delete this comment? This action cannot be undone."
+          confirmText="Delete Comment"
+          variant="danger"
+          onConfirm={() => {
+            onDeleteComment(commentToDelete);
+            setCommentToDelete(null);
+          }}
+          onCancel={() => setCommentToDelete(null)}
         />
       )}
     </div>

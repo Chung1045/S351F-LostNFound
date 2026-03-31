@@ -347,9 +347,10 @@ function AppContent() {
   const handleDeleteComment = async (commentId: string) => {
     try {
       await api.admin.deleteComment(commentId);
-      setComments(prev => prev.filter(c => c.id !== commentId));
+      // Use String() for robust comparison as DB IDs might be numbers while state IDs are strings
+      setComments(prev => prev.filter(c => String(c.id) !== String(commentId)));
       setReports(prev => prev.map(r => 
-        (r.targetType === 'comment' && r.targetId === commentId) 
+        (r.targetType === 'comment' && String(r.targetId) === String(commentId)) 
           ? { ...r, status: 'resolved' } 
           : r
       ));
