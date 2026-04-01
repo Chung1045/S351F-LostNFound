@@ -1,4 +1,4 @@
-export type ItemType = 'Lost' | 'Found';
+export type ItemType = 'lost' | 'found';
 
 export type Category = 'Electronics' | 'Clothing' | 'Documents' | 'Keys' | 'Wallets' | 'Pets' | 'Other';
 
@@ -22,6 +22,7 @@ export interface Post {
   time: string;
   contactInfo: string;
   imageUrl: string;
+  imageUrls?: string[];
   status: 'active' | 'collected' | 'found';
   userId: string;
   userName: string;
@@ -43,16 +44,9 @@ export interface Report {
   reporterId: string;
   reason: string;
   status: 'pending' | 'resolved';
-}
-
-export interface Notification {
-  id: string;
-  user_id: string;
-  type: string;
-  message: string;
-  is_read: boolean;
-  created_at: string;
-  link_id?: string;
+  commentContent?: string;
+  reporterName?: string;
+  postId?: string;
 }
 
 export interface Notification {

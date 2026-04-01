@@ -110,12 +110,14 @@ function AppContent() {
     if (user?.role === 'admin' && currentPage === 'admin') {
       const fetchData = async () => {
         try {
-          const [fetchedReports, fetchedUsers] = await Promise.all([
-            api.reports.getAll(),
-            api.auth.getUsers()
+          const [fetchedReports, fetchedUsers, fetchedPosts] = await Promise.all([
+            api.admin.getReports(),
+            api.auth.getUsers(),
+            api.posts.getAll()
           ]);
           setReports(fetchedReports);
           setAllUsers(fetchedUsers);
+          setPosts(fetchedPosts);
         } catch (error) {
           console.error('Failed to fetch admin data', error);
         }
@@ -237,30 +239,20 @@ function AppContent() {
     }
   };
 
-  const handleUpdatePostStatus = async (postId: string, type: Post['type']) => {
+  const handleUpdatePostStatus = async (postId: string) => {
     try {
-      // Determine the new status based on the post type
-      let newStatus: Post['status'];
+      const post = posts.find(p => p.id === postId);
+      if (!post) return;
 
-      console.log(`Post Type: ${type} `);
-      console.log(`Post ID: ${postId} `);
+      // Map to correct status based on item type
+      // Found items -> collected
+      // Lost items -> found
+      const newStatus = post.type === 'found' ? 'collected' : 'found';
 
-      if (type === 'Lost') {
-        newStatus = 'found';
-      } else if (type === 'Found') {
-        newStatus = 'collected';
-      } else {
-        throw new Error('Invalid post type');
-      }
-
-      // Update the status via API
       await api.posts.updateStatus(postId, newStatus);
 
-      // Update local state
-      setPosts(prev => prev.map(p =>
-          p.id === postId ? { ...p, status: newStatus } : p
-      ));
-
+      setPosts(prev => prev.map(p => p.id === postId ? { ...p, status: newStatus } : p));
+      setSelectedPost(prev => prev && prev.id === postId ? { ...prev, status: newStatus } : prev);
       toast.success('Status updated successfully!');
     } catch (error) {
       toast.error('Failed to update status');
@@ -319,7 +311,7 @@ function AppContent() {
 
   const handleResolveReport = async (reportId: string) => {
     try {
-      await api.reports.resolve(reportId);
+      await api.admin.updateReportStatus(reportId, 'resolved');
       setReports(prev => prev.map(r => r.id === reportId ? { ...r, status: 'resolved' } : r));
       toast.success('Report resolved');
     } catch (error) {
@@ -349,6 +341,22 @@ function AppContent() {
       toast.error('Report submitted for review');
     } catch (error) {
       toast.error('Failed to submit report');
+    }
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    try {
+      await api.admin.deleteComment(commentId);
+      // Use String() for robust comparison as DB IDs might be numbers while state IDs are strings
+      setComments(prev => prev.filter(c => String(c.id) !== String(commentId)));
+      setReports(prev => prev.map(r =>
+        (r.targetType === 'comment' && String(r.targetId) === String(commentId))
+          ? { ...r, status: 'resolved' }
+          : r
+      ));
+      toast.success('Comment deleted successfully');
+    } catch (error) {
+      toast.error('Failed to delete comment');
     }
   };
 
@@ -494,6 +502,7 @@ function AppContent() {
                 onDeletePost={handleDeletePost}
                 onResolveReport={handleResolveReport}
                 onDeleteUser={handleDeleteUser}
+                onDeleteComment={handleDeleteComment}
               />
             </motion.div>
           )}
@@ -510,7 +519,7 @@ function AppContent() {
             currentUser={user}
             onClose={() => setSelectedPost(null)}
             onAddComment={(content) => handleAddComment(selectedPost.id, content)}
-            onUpdateStatus={() => handleUpdatePostStatus(selectedPost.id, selectedPost.type)}
+            onUpdateStatus={() => handleUpdatePostStatus(selectedPost.id)}
             onReport={(reason) => handleReport(selectedPost.id, reason)}
             onDelete={() => handleDeletePost(selectedPost.id)}
             onReportComment={(commentId, reason) => handleReportComment(commentId, reason)}

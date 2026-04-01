@@ -1,8 +1,8 @@
-import { Post, Comment, User, Report } from '../types';
+import { Post, Report } from '../types';
 
 const API_BASE_URL = '/api';
 
-const getAuthHeaders = () => {
+const getAuthHeaders = (): Record<string, string> => {
   const token = localStorage.getItem('token');
   console.log('Token from localStorage:', token);
   return token ? { 'Authorization': `Bearer ${token}` } : {};
@@ -94,6 +94,7 @@ export const api = {
       return handleResponse(response);
     },
     create: async (postData: Partial<Post>) => {
+      // Send imageUrls to backend
       const response = await fetch(`${API_BASE_URL}/posts`, {
         method: 'POST',
         headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
@@ -139,10 +140,16 @@ export const api = {
       return handleResponse(response);
     },
     create: async (reportData: Partial<Report>) => {
+      const payload = {
+        target_type: reportData.targetType,
+        target_id: reportData.targetId,
+        category_id: (reportData as any).categoryId || 1, // Use provided category or default to 1 (Inappropriate Content)
+        reason: reportData.reason
+      };
       const response = await fetch(`${API_BASE_URL}/reports`, {
         method: 'POST',
         headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
-        body: JSON.stringify(reportData),
+        body: JSON.stringify(payload),
       });
       return handleResponse(response);
     },
@@ -181,7 +188,18 @@ export const api = {
       const response = await fetch(`${API_BASE_URL}/admin/reports`, {
         headers: getAuthHeaders(),
       });
-      return handleResponse(response);
+      const data = await handleResponse(response);
+      return data.map((r: any) => ({
+        id: r.id,
+        targetType: r.target_type,
+        targetId: r.target_id,
+        postId: r.post_id, // New field from backend
+        reporterId: r.reporter_id,
+        reason: r.reason,
+        status: r.status,
+        commentContent: r.comment_content,
+        reporterName: r.reporter_name,
+      }));
     },
     updateReportStatus: async (id: string, status: string) => {
       const response = await fetch(`${API_BASE_URL}/admin/reports/${id}`, {
@@ -193,6 +211,13 @@ export const api = {
     },
     deleteUser: async (id: string) => {
       const response = await fetch(`${API_BASE_URL}/admin/users/${id}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      });
+      return handleResponse(response);
+    },
+    deleteComment: async (id: string) => {
+      const response = await fetch(`${API_BASE_URL}/admin/comments/${id}`, {
         method: 'DELETE',
         headers: getAuthHeaders(),
       });

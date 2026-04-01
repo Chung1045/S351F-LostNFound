@@ -29,10 +29,12 @@ const createReport = (req, res) => {
 const getReports = (req, res) => {
     try {
         const reports = db.prepare(`
-            SELECT reports.*, report_categories.name as category_name, users.username as reporter_name
+            SELECT reports.*, report_categories.name as category_name, users.username as reporter_name, 
+                   comments.content as comment_content, comments.post_id as post_id
             FROM reports
-            JOIN report_categories ON reports.category_id = report_categories.id
+            LEFT JOIN report_categories ON reports.category_id = report_categories.id
             JOIN users ON reports.reporter_id = users.id
+            LEFT JOIN comments ON reports.target_type = 'comment' AND reports.target_id = comments.id
             WHERE reports.status = 'pending'
         `).all();
 
@@ -93,4 +95,18 @@ const deleteUser = (req, res) => {
     }
 };
 
-module.exports = { createReport, getReports, updateReportStatus, deleteUser };
+// delete comment (admin)
+const deleteComment = (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const result = db.prepare('DELETE FROM comments WHERE id = ?').run(id);
+        if (result.changes === 0) return res.status(404).json({ error: 'Comment not found' });
+
+        res.status(200).json({ message: 'Comment deleted successfully' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+module.exports = { createReport, getReports, updateReportStatus, deleteUser, deleteComment };

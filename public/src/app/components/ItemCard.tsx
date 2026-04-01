@@ -29,7 +29,7 @@ export const ItemCard: React.FC<ItemCardProps> = ({ post, onClick }) => {
         }`}>
           {isLost ? t.grid.lost : t.grid.found}
         </div>
-        {post.status === 'resolved' && (
+        {post.status !== 'active' && (
           <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
             <span className="px-4 py-1.5 bg-white text-black text-sm font-bold rounded-lg shadow-lg rotate-[-12deg]">
               {isLost ? t.card.found : t.card.collected}

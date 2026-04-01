@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Post, Comment, User as UserType } from '../types';
-import { X, MapPin, Calendar, Clock, Phone, User, MessageCircle, Send, AlertTriangle, CheckCircle, Trash2, ArrowLeft, Flag } from 'lucide-react';
+import { X, MapPin, Calendar, Phone, MessageCircle, Send, AlertTriangle, CheckCircle, Trash2, ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { ConfirmDialog } from './ConfirmDialog';
@@ -20,13 +20,13 @@ interface ItemDetailsProps {
   onLogin?: () => void;
 }
 
-export const ItemDetails: React.FC<ItemDetailsProps> = ({
-  post,
-  comments,
-  currentUser,
-  onClose,
-  onAddComment,
-  onUpdateStatus,
+export const ItemDetails: React.FC<ItemDetailsProps> = ({ 
+  post, 
+  comments, 
+  currentUser, 
+  onClose, 
+  onAddComment, 
+  onUpdateStatus, 
   onReport,
   onDelete,
   onReportComment,
@@ -38,10 +38,21 @@ export const ItemDetails: React.FC<ItemDetailsProps> = ({
   const [reportReason, setReportReason] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showResolveConfirm, setShowResolveConfirm] = useState(false);
-
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  
   const isOwner = currentUser?.id === post.userId;
   const isAdmin = currentUser?.role === 'admin';
-  const isLost = post.type === 'Lost';
+  const isLost = post.type === 'lost';
+
+  const images = post.imageUrls && post.imageUrls.length > 0 ? post.imageUrls : [post.imageUrl];
+
+  const handleNextImage = () => {
+    setCurrentImageIndex((prev) => (prev + 1) % images.length);
+  };
+
+  const handlePrevImage = () => {
+    setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
+  };
 
   const handleSubmitComment = (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,7 +64,7 @@ export const ItemDetails: React.FC<ItemDetailsProps> = ({
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-0 md:p-6 bg-black/60 backdrop-blur-sm">
       <div className="bg-white dark:bg-gray-800 w-full max-w-5xl md:rounded-3xl shadow-2xl flex flex-col md:flex-row h-full md:h-auto md:max-h-[90vh] overflow-hidden animate-in fade-in slide-in-from-bottom-10 duration-300">
-
+        
         {/* MOBILE LAYOUT */}
         <div className="md:hidden flex flex-col h-full overflow-y-auto">
           {/* Mobile Header */}
@@ -119,9 +130,34 @@ export const ItemDetails: React.FC<ItemDetailsProps> = ({
             )}
           </div>
 
-          {/* 2. IMAGE */}
-          <div className="relative w-full aspect-square border-b border-gray-100 dark:border-gray-700">
-            <ImageWithFallback src={post.imageUrl} alt={post.title} className="w-full h-full object-cover" />
+          {/* 2. IMAGE SLIDER */}
+          <div className="relative w-full aspect-square border-b border-gray-100 dark:border-gray-700 group">
+            <ImageWithFallback src={images[currentImageIndex]} alt={post.title} className="w-full h-full object-cover" />
+            
+            {images.length > 1 && (
+              <>
+                <button 
+                  onClick={handlePrevImage}
+                  className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                >
+                  <ChevronLeft size={20} />
+                </button>
+                <button 
+                  onClick={handleNextImage}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                >
+                  <ChevronRight size={20} />
+                </button>
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
+                  {images.map((_, i) => (
+                    <div 
+                      key={i} 
+                      className={`w-1.5 h-1.5 rounded-full transition-all ${i === currentImageIndex ? 'bg-white w-3' : 'bg-white/50'}`} 
+                    />
+                  ))}
+                </div>
+              </>
+            )}
           </div>
 
           {/* 3. COMMENTS */}
@@ -183,8 +219,35 @@ export const ItemDetails: React.FC<ItemDetailsProps> = ({
         {/* DESKTOP LAYOUT */}
         <div className="hidden md:flex flex-1 overflow-y-auto border-r border-gray-100 dark:border-gray-700 no-scrollbar">
           <div className="w-full">
-            <div className="relative aspect-video w-full">
-              <ImageWithFallback src={post.imageUrl} alt={post.title} className="w-full h-full object-cover" />
+            <div className="relative aspect-video w-full group">
+              <ImageWithFallback src={images[currentImageIndex]} alt={post.title} className="w-full h-full object-cover" />
+              
+              {images.length > 1 && (
+                <>
+                  <button 
+                    onClick={handlePrevImage}
+                    className="absolute left-4 top-1/2 -translate-y-1/2 p-2 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer backdrop-blur-sm"
+                  >
+                    <ChevronLeft size={24} />
+                  </button>
+                  <button 
+                    onClick={handleNextImage}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer backdrop-blur-sm"
+                  >
+                    <ChevronRight size={24} />
+                  </button>
+                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+                    {images.map((_, i) => (
+                      <button 
+                        key={i} 
+                        onClick={() => setCurrentImageIndex(i)}
+                        className={`w-2 h-2 rounded-full transition-all cursor-pointer ${i === currentImageIndex ? 'bg-white w-4' : 'bg-white/50 hover:bg-white/80'}`} 
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+
               <div className={`absolute top-4 right-4 px-4 py-1.5 rounded-full text-sm font-bold uppercase tracking-wider ${isLost ? 'bg-red-500 text-white' : 'bg-green-500 text-white'}`}>
                 {isLost ? t.grid.lost : t.grid.found}
               </div>

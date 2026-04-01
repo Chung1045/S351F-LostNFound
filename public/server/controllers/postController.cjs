@@ -1,24 +1,23 @@
 const { v4: uuidv4 } = require('uuid');
 const db = require('../../db/database.cjs');
 
-// TDOD: Update with the one from the backend that supports imageURL fetching
 const getPosts = (req, res) => {
     try {
         const stmt = db.prepare(`
             SELECT p.*, u.username as userName,
                    (SELECT COUNT(*) FROM reports r WHERE r.target_id = p.id AND r.status = 'pending') as reportCount,
-                   (SELECT image_url FROM post_images pi WHERE pi.post_id = p.id LIMIT 1) as imageUrl
+                   (SELECT image_url FROM post_images pi WHERE pi.post_id = p.id LIMIT 1) as imageUrl,
+                   (SELECT json_group_array(image_url) FROM post_images pi WHERE pi.post_id = p.id) as imageUrls
             FROM posts p 
             JOIN users u ON p.user_id = u.id 
             ORDER BY p.created_at DESC
         `);
         const posts = stmt.all();
-
+        
         // Map database fields to frontend model
         const formattedPosts = posts.map(p => ({
             id: p.id,
-            // type: p.type.toLowerCase(),
-            type: p.type,
+            type: p.type.toLowerCase(),
             title: p.title,
             category: p.category,
             description: p.description,
@@ -31,6 +30,7 @@ const getPosts = (req, res) => {
             userName: p.userName,
             createdAt: p.created_at,
             imageUrl: p.imageUrl || 'https://images.unsplash.com/photo-1621735320171-a682f45d7172?auto=format&fit=crop&q=80&w=800',
+            imageUrls: JSON.parse(p.imageUrls || '[]'),
             isReported: p.reportCount > 0
         }));
 
@@ -41,123 +41,58 @@ const getPosts = (req, res) => {
     }
 };
 
-// TODO: API changed
-// @route   GET /api/posts/:id
-// @desc    Get Post Detail (With Privacy Filter)
-// @route   GET /api/posts/:id
-// @desc    Get Post Detail (With Privacy Check)
-const getPostById = async (req, res) => {
-    const { id } = req.params;
-
-    try {
-        const query = `
-            SELECT posts.*, users.show_contact 
-            FROM posts 
-            JOIN users ON posts.user_id = users.id 
-            WHERE posts.id = ?
-        `;
-
-        const post = db.prepare(query).get(id);
-
-        if (!post) {
-            return res.status(404).json({ error: "Post not found" });
-        }
-
-        const images = db.prepare('SELECT image_url FROM post_images WHERE post_id = ?').all(id);
-
-        if (post.show_contact === 0) {
-            post.contact_info = null;
-        }
-        const imageUrls = images.map(img => img.image_url);
-
-        res.status(200).json({
-            ...post,
-            images: imageUrls
-        });
-
-    } catch (err) {
-        console.error('Get Post Error:', err);
-        res.status(500).json({ error: err.message });
-    }
-};
-
-
-// TODO: Field name changed
-// @route   POST /api/posts
-// @desc    Create Post (Security Fix: user_id from Token)
 const createPost = (req, res) => {
-    const user_id = req.user.id;
-    const { type, title, category, description, location, date, time, contactInfo} = req.body;
-    const itemDatetime = `${date}T${time}:00Z`;
-
-    console.log("Received data:", { user_id, type, title, category, description, location, date, time, contactInfo});
-
-    if (!type || !title) {
-        return res.status(400).json({ error: "missing required fields" });
-    }
-
     try {
-        // Use Transaction to handle posts and images linkage
-        const executeTransaction = db.transaction(() => {
-            const postId = uuidv4();
-
-
-            const stmt = db.prepare(`
-                INSERT INTO posts (id, user_id, type, category, title, description, location, item_datetime, contact_info)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            `);
-            stmt.run(postId, user_id, type, category, title, description, location, itemDatetime, contactInfo);
-
-            if (image_urls && Array.isArray(image_urls)) {
-                const insertImage = db.prepare(`
-                INSERT INTO post_images (id, post_id, image_url) 
-                VALUES (?, ?, ?)
-            `);
-
-                for (const url of image_urls) {
-                    insertImage.run(uuidv4(), postId, url);
-                }
-            }
-
-            return postId;
-        });
-
-        const id = executeTransaction();
-        res.status(201).json({ message: "Post created successfully", postId: id });
-
-    } catch (err) {
-        console.error("Error creating post:", err);
-        res.status(400).json({ error: err.message });
-    }
-};
-
-// @route   PUT /api/posts/:id
-// @desc    Update Post (Owner or Admin Only)
-const updatePost = (req, res) => {
-    const { id } = req.params;
-    const { title, description, location, status } = req.body;
-    const currentUserId = req.user.id;
-    const currentUserRole = req.user.role;
-
-    try {
-        // Check ownership/role before update
-        const post = db.prepare('SELECT user_id FROM posts WHERE id = ?').get(id);
-        if (!post) return res.status(404).json({ error: "Post not found" });
-
-        if (post.user_id !== currentUserId && currentUserRole !== 'admin') {
-            return res.status(403).json({ error: "Unauthorized to update this post" });
-        }
+        const { type, title, category, description, location, date, time, contactInfo, imageUrls } = req.body;
+        const id = uuidv4();
+        const userId = req.user.id;
+        const itemDatetime = `${date}T${time}:00Z`;
 
         const stmt = db.prepare(`
-            UPDATE posts 
-            SET title = COALESCE(?, title), 
-                description = COALESCE(?, description), 
-                location = COALESCE(?, location),
-                status = COALESCE(?, status),
-                updated_at = CURRENT_TIMESTAMP
-            WHERE id = ?
+            INSERT INTO posts (id, user_id, type, category, title, description, location, item_datetime, contact_info, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')
         `);
-        stmt.run(title, description, location, status, id);
+        
+        // Ensure type is capitalized for DB check constraint ('Lost', 'Found')
+        const dbType = type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
+
+        stmt.run(id, userId, dbType, category, title, description, location, itemDatetime, contactInfo);
+
+        if (imageUrls && Array.isArray(imageUrls)) {
+            const imgStmt = db.prepare(`INSERT INTO post_images (id, post_id, image_url) VALUES (?, ?, ?)`);
+            for (const url of imageUrls) {
+                imgStmt.run(uuidv4(), id, url);
+            }
+        }
+
+        res.status(201).json({ message: 'Post created successfully', id });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+const updatePostStatus = (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+        const userId = req.user.id;
+        const userRole = req.user.role;
+
+        // Check ownership or admin
+        const postStmt = db.prepare('SELECT user_id FROM posts WHERE id = ?');
+        const post = postStmt.get(id);
+
+        if (!post) {
+            return res.status(404).json({ error: 'Post not found' });
+        }
+
+        if (post.user_id !== userId && userRole !== 'admin') {
+            return res.status(403).json({ error: 'Unauthorized' });
+        }
+
+        const stmt = db.prepare('UPDATE posts SET status = ? WHERE id = ?');
+        stmt.run(status, id);
 
         // Notify user if status was updated by someone else (admin) or just as a confirmation
         // If it's the owner updating, maybe no need for notification, but let's add it for 'system' type
@@ -170,48 +105,32 @@ const updatePost = (req, res) => {
             id
         );
 
-        res.status(200).json({ message: "Post updated successfully" });
-    } catch (err) {
-        console.error("Update Post error:", err);
-        res.status(500).json({ error: "Internal server error: " + err.message });
+        res.json({ message: 'Post status updated' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Internal server error' });
     }
 };
 
-// @route   DELETE /api/posts/:id
-// @desc    Delete a post (Owner or Admin Only)
 const deletePost = (req, res) => {
-    const { id } = req.params;
-
-    console.log("delete post is invoked")
-
-    // 1.getting current user info from auth middleware
-    const currentUserId = req.user.id;
-    const currentUserRole = req.user.role;
-
     try {
+        const { id } = req.params;
+        const userId = req.user.id;
+        const userRole = req.user.role;
 
-        const post = db.prepare('SELECT user_id FROM posts WHERE id = ?').get(id);
+        const postStmt = db.prepare('SELECT user_id FROM posts WHERE id = ?');
+        const post = postStmt.get(id);
 
         if (!post) {
-            return res.status(404).json({ error: "Post not found" });
+            return res.status(404).json({ error: 'Post not found' });
         }
 
-        // 3. Only allow deletion if the user is the post owner or an admin
-        if (post.user_id !== currentUserId && currentUserRole !== 'admin') {
-            return res.status(403).json({
-                error: 'Only admin and post owner can delete this post'
-            });
-        }
-
-        // 4. Perform the delete operation
-        const result = db.prepare("DELETE FROM posts WHERE id = ?").run(id);
-
-        if (result.changes === 0) {
-            return res.status(404).json({ error: "Delete failed, post not found" });
+        if (post.user_id !== userId && userRole !== 'admin') {
+            return res.status(403).json({ error: 'Unauthorized' });
         }
 
         // Notify user if deleted by admin
-        if (currentUserRole === 'admin' && post.user_id !== currentUserId) {
+        if (userRole === 'admin' && post.user_id !== userId) {
             db.prepare(`
                 INSERT INTO notifications (user_id, type, message)
                 VALUES (?, 'system', ?)
@@ -221,13 +140,14 @@ const deletePost = (req, res) => {
             );
         }
 
+        const stmt = db.prepare('DELETE FROM posts WHERE id = ?');
+        stmt.run(id);
 
-        res.status(200).json({ message: "Post deleted successfully" });
-
-    } catch (err) {
-        console.error("Delete Post error:", err);
-        res.status(500).json({ error: err.message });
+        res.json({ message: 'Post deleted' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Internal server error' });
     }
 };
 
-module.exports = { getPosts, getPostById, createPost, updatePost, deletePost };
+module.exports = { getPosts, createPost, updatePostStatus, deletePost };

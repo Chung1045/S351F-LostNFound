@@ -12,13 +12,15 @@ interface AdminDashboardProps {
   onDeletePost: (postId: string) => void;
   onResolveReport: (reportId: string) => void;
   onDeleteUser: (userId: string) => void;
+  onDeleteComment: (commentId: string) => void;
 }
 
-export const AdminDashboard: React.FC<AdminDashboardProps> = ({ posts, reports, users, onReviewPost, onDeletePost, onResolveReport, onDeleteUser }) => {
+export const AdminDashboard: React.FC<AdminDashboardProps> = ({ posts, reports, users, onReviewPost, onDeletePost, onResolveReport, onDeleteUser, onDeleteComment }) => {
   const { t } = useApp();
   const [reportToDelete, setReportToDelete] = useState<string | null>(null);
   const [userToDelete, setUserToDelete] = useState<string | null>(null);
   const [postToDelete, setPostToDelete] = useState<Post | null>(null);
+  const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
 
   const pendingReports = reports.filter(r => r.status === 'pending');
   const reportedPostIds = new Set(pendingReports.filter(r => r.targetType === 'post').map(r => r.targetId));
@@ -167,10 +169,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ posts, reports, 
                     <p className="text-sm text-gray-600 dark:text-gray-300 bg-red-50 dark:bg-red-900/20 p-3 rounded-xl border border-red-100 dark:border-red-900/40 mb-4">
                       <span className="font-bold text-red-700 dark:text-red-400">Reason:</span> {report.reason}
                     </p>
+                    {report.targetType === 'comment' && report.commentContent && (
+                      <div className="mb-4 bg-gray-50 dark:bg-gray-700/50 p-3 rounded-xl border border-gray-100 dark:border-gray-600">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 font-bold italic">Reported Comment Content:</p>
+                        <p className="text-sm text-gray-800 dark:text-gray-200">"{report.commentContent}"</p>
+                      </div>
+                    )}
                     <div className="flex items-center justify-between">
-                      {targetPost && (
+                      {report.targetType === 'post' && targetPost && (
                         <button onClick={() => onReviewPost(targetPost)} className="flex items-center gap-1.5 text-xs text-blue-600 font-bold hover:underline cursor-pointer">
                           View Target Post <ArrowRight size={12} />
+                        </button>
+                      )}
+                      {report.targetType === 'comment' && (
+                        <button 
+                          onClick={() => {
+                            const parentPost = posts.find(p => p.id === report.postId);
+                            if (parentPost) {
+                              onReviewPost(parentPost);
+                            }
+                          }}
+                          className="flex items-center gap-1.5 text-xs text-blue-600 font-bold hover:underline cursor-pointer"
+                        >
+                          View Target Comment <ArrowRight size={12} />
                         </button>
                       )}
                       <div className="flex gap-2">
@@ -181,13 +202,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ posts, reports, 
                           <CheckCircle size={16} />
                           Resolve
                         </button>
-                        <button 
-                          onClick={() => setReportToDelete(report.targetId)} 
-                          className="flex items-center gap-2 px-3 py-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors cursor-pointer text-xs font-bold"
-                        >
-                          <Trash2 size={16} />
-                          Delete Post
-                        </button>
+                        {report.targetType === 'post' ? (
+                          <button 
+                            onClick={() => setReportToDelete(report.targetId)} 
+                            className="flex items-center gap-2 px-3 py-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors cursor-pointer text-xs font-bold"
+                          >
+                            <Trash2 size={16} />
+                            Delete Post
+                          </button>
+                        ) : (
+                          <button 
+                            onClick={() => setCommentToDelete(report.targetId)} 
+                            className="flex items-center gap-2 px-3 py-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors cursor-pointer text-xs font-bold"
+                          >
+                            <Trash2 size={16} />
+                            Delete Comment
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -280,6 +311,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ posts, reports, 
             setUserToDelete(null);
           }}
           onCancel={() => setUserToDelete(null)}
+        />
+      )}
+
+      {commentToDelete && (
+        <ConfirmDialog
+          title="Delete Comment?"
+          message="Are you sure you want to delete this comment? This action cannot be undone."
+          confirmText="Delete Comment"
+          variant="danger"
+          onConfirm={() => {
+            onDeleteComment(commentToDelete);
+            setCommentToDelete(null);
+          }}
+          onCancel={() => setCommentToDelete(null)}
         />
       )}
     </div>
