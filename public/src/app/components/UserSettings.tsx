@@ -16,7 +16,7 @@ export const UserSettings: React.FC<UserSettingsProps> = ({ user, onClose, onUpd
   const { t } = useApp();
   const [activeSection, setActiveSection] = useState<'profile' | 'password' | 'notifications' | 'privacy'>('profile');
 
-  const [profileData, setProfileData] = useState({ name: user.name, email: user.email });
+  const [profileData, setProfileData] = useState({ name: user.username, email: user.email });
   const [profileErrors, setProfileErrors] = useState<Record<string, string>>({});
   const [isSavingProfile, setIsSavingProfile] = useState(false);
 

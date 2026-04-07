@@ -20,7 +20,7 @@ interface NavbarProps {
   onNotificationClick?: (notification: Notification) => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ 
+export const Navbar: React.FC<NavbarProps> = ({
   user, onNavigate, onLogout, onAuth, onCreatePost, onShowProfile, onShowSettings, currentPage,
   notifications = [], onMarkAsRead = () => {}, onMarkAllAsRead = () => {}, onNotificationClick = () => {}
 }) => {
@@ -42,7 +42,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       const insideMobile = mobileMenuRef.current?.contains(target);
       const insideDesktopNotifications = desktopNotificationRef.current?.contains(target);
       const insideMobileNotifications = mobileNotificationRef.current?.contains(target);
-      
+
       if (!insideDesktop && !insideMobile) {
         setShowUserMenu(false);
       }
@@ -156,7 +156,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     <User size={18} />
                   </div>
                   <div className="flex flex-col text-left">
-                    <span className="text-sm font-semibold text-gray-900 dark:text-white leading-tight">{user.name}</span>
+                    <span className="text-sm font-semibold text-gray-900 dark:text-white leading-tight">{user.username}</span>
                     <span className="text-[10px] text-gray-500 dark:text-gray-400">{user.email}</span>
                   </div>
                 </button>
@@ -165,7 +165,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 py-2 z-50">
                     <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
                       <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">{t.nav.account}</p>
-                      <p className="text-sm font-bold text-gray-900 dark:text-white mt-1">{user.name}</p>
+                      <p className="text-sm font-bold text-gray-900 dark:text-white mt-1">{user.username}</p>
                     </div>
 
                     <button
@@ -280,7 +280,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 py-2 z-50">
                   <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
                     <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">{t.nav.account}</p>
-                    <p className="text-sm font-bold text-gray-900 dark:text-white mt-1">{user.name}</p>
+                    <p className="text-sm font-bold text-gray-900 dark:text-white mt-1">{user.username}</p>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{user.email}</p>
                   </div>
 

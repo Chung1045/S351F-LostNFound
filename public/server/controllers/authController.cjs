@@ -78,7 +78,7 @@ const login = async (req, res) => {
             token,
             user: {
                 id: user.id,
-                name: user.username,
+                username: user.username,
                 email: user.email,
                 role: user.role,
                 show_contact: user.show_contact
@@ -137,7 +137,7 @@ const logout = (req, res) => {
         db.prepare('DELETE FROM refresh_tokens WHERE token = ?').run(refreshToken);
     }
 
-    res.clearCookie('refreshToken', {
+    res.clearCookie('refresh_token', {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict'
@@ -165,7 +165,7 @@ const updatePassword = async (req, res) => {
         const hashedPassword = await argon2.hash(newPassword);
         db.prepare('UPDATE users SET password = ? WHERE id = ?').run(hashedPassword, req.user.id);
 
-        db.prepare('DELETE FROM refresh_tokens WHERE user_id = ?').run(req.user.Id);
+        db.prepare('DELETE FROM refresh_tokens WHERE user_id = ?').run(req.user.id);
 
         return res.status(200).json({ message: 'Password updated successfully' });
 
@@ -186,6 +186,8 @@ const getProfile = (req, res) => {
             return res.status(404).json({ message: 'User not found' });
         }
 
+        console.log(`Get profile: ${JSON.stringify(user)}`)
+
         return res.status(200).json({ user });
 
     } catch (err) {
@@ -197,16 +199,21 @@ const getProfile = (req, res) => {
 // Update Current User Profile
 // TODO: Need to fix the updateProfile function to stop it from logout
 const updateProfile = (req, res) => {
-    const { username, email, show_contact } = req.body;
 
-    if (!username && !email && show_contact === undefined) {
+    console.log("Update profile invoked")
+    console.log(req.body)
+    console.log(req.user)
+
+    const { name, email, show_contact } = req.body;
+
+    if (!name && !email && show_contact === undefined) {
         return res.status(400).json({ message: 'Nothing to update' });
     }
 
     try {
         const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
 
-        const updatedUsername = username ?? user.username;
+        const updatedUsername = name ?? user.username;
         const updatedEmail = email ?? user.email;
         const updatedShowContact = show_contact !== undefined ? (show_contact ? 1 : 0) : user.show_contact;
 
@@ -214,7 +221,17 @@ const updateProfile = (req, res) => {
             UPDATE users SET username = ?, email = ?, show_contact = ? WHERE id = ?
         `).run(updatedUsername, updatedEmail, updatedShowContact, req.user.id);
 
-        return res.status(200).json({ message: 'Profile updated successfully' });
+        console.log("Update done")
+
+        // Fetch the updated user data
+        const updatedUser = db.prepare(
+            'SELECT id, username, email, role, show_contact, created_at FROM users WHERE id = ?'
+        ).get(req.user.id);
+
+        return res.status(200).json({
+            message: 'Profile updated successfully',
+            user: updatedUser
+        });
 
     } catch (err) {
         console.error('Update me error:', err);
