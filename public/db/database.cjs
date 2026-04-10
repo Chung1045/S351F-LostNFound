@@ -98,6 +98,13 @@ const initDatabase = async () => {
                 status      TEXT    NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'resolved', 'dismissed')),
                 created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
             );
+
+            CREATE TABLE IF NOT EXISTS refresh_tokens (
+                id         INTEGER  PRIMARY KEY AUTOINCREMENT,
+                token      TEXT     UNIQUE NOT NULL,
+                user_id    TEXT     NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
         `)
         console.log("Database schema initialized successfully");
 
