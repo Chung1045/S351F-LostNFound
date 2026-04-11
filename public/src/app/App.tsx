@@ -142,10 +142,10 @@ function AppContent() {
     // Redirect based on role
     if (loggedInUser.role === 'admin') {
       setCurrentPage('admin');
-      toast.success(`Welcome back, ${loggedInUser.name}! Admin access granted.`);
+      toast.success(`Welcome back, ${loggedInUser.username}! Admin access granted.`);
     } else {
       setCurrentPage('home');
-      toast.success(`Welcome back, ${loggedInUser.name}!`);
+      toast.success(`Welcome back, ${loggedInUser.username}!`);
     }
   };
 
@@ -161,7 +161,7 @@ function AppContent() {
     setUser(newUser);
     setShowSignUp(false);
     setCurrentPage('home');
-    toast.success(`Welcome to FoundIt, ${newUser.name}! 🎉`);
+    toast.success(`Welcome to FoundIt, ${newUser.username}! 🎉`);
   };
 
   const handleSwitchToLogin = () => {
